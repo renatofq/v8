@@ -1,10 +1,11 @@
-*.o
-*.a
+*.[oa]
 *.so
 *.ninja
 *.cmake
-.ninja_log
-.ninja_deps
+.ninja_*
+test_*
 CMakeCache.txt
+TAGS
 CMakeFiles/
+Testing/
 test/Testing/
