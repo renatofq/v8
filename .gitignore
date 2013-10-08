@@ -1,11 +1,5 @@
 *.[oa]
 *.so
-*.ninja
-*.cmake
 .ninja_*
-test_*
-CMakeCache.txt
 TAGS
-CMakeFiles/
-Testing/
-test/Testing/
+build/

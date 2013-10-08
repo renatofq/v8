@@ -4,14 +4,18 @@ project(v8)
 
 set(SRC_DIR src)
 set(SRC ${SRC_DIR}/map.c
-        ${SRC_DIR}/scgi.c)
+        ${SRC_DIR}/scgi.c
+        ${SRC_DIR}/v8.c)
+
 set(HDR include/*.h)
 
 include_directories(include)
 
-add_library(v8 ${SRC})
+add_library(v8 SHARED ${SRC})
+target_link_libraries(v8 pthread)
 
 install(TARGETS v8 DESTINATION lib)
 install(FILES ${HDR} DESTINATION include/v8)
 
 add_subdirectory(test)
+add_subdirectory(example)
