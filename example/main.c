@@ -12,15 +12,12 @@ static V8Action actions[] = {
 	{V8_NO_ACTION, V8_UNKNOWN, "", NULL}
 };
 
-void print_pair(const char * key, const char * value)
-{
-
-}
-
 void handler(const V8Context * context, const V8Request * request,
 						 V8Response * response)
 {
-
+	printf("teste: %s\n", v8_request_param(request, "teste"));
+	printf("teste2: %s\n", v8_request_param(request, "teste2"));
+	printf("teste3: %s\n", v8_request_param(request, "teste3"));
 }
 
 int main(int argc, char * argv[])

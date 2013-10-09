@@ -3,7 +3,7 @@
 #include "test.h"
 
 #include <stdio.h>
-
+#include <string.h>
 
 
 void print_pair(const char * key, const char * value)

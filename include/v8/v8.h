@@ -31,11 +31,11 @@ typedef struct v8_t
 {
 	int sock;
 	int backlog;
-	V8Action * actions;
+	const V8Action * actions;
 } V8;
 
-V8 * v8_init(const char * configFile, V8Action * actions);
+V8 * v8_init(const char * configFile, const V8Action * actions);
 
-int v8_start(V8 * v8);
+int v8_start(const V8 * v8);
 
 #endif

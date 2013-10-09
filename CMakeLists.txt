@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 
 project(v8)
 
+add_definitions(-Wall -Werror -std=gnu99)
+
 set(SRC_DIR src)
 set(SRC ${SRC_DIR}/map.c
+        ${SRC_DIR}/request.c
         ${SRC_DIR}/scgi.c
         ${SRC_DIR}/v8.c)
 

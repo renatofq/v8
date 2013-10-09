@@ -1,6 +1,8 @@
 #include <v8/v8.h>
+#include <v8/scgi.h>
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -10,7 +12,7 @@
 typedef struct v8_thred_data_t
 {
 	int sock;
-	V8 * v8;
+	const V8 * v8;
 } V8ThreadData;
 
 
@@ -18,7 +20,7 @@ static int v8_init_socket(V8 * v8);
 static void * v8_handle(void * p);
 static void v8_dispatcher(int sock, V8Handler handler);
 
-V8 * v8_init(const char * configFile, V8Action * actions)
+V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
 
@@ -33,7 +35,7 @@ V8 * v8_init(const char * configFile, V8Action * actions)
 }
 
 
-int v8_start(V8 * v8)
+int v8_start(const V8 * v8)
 {
 	int ret = 0;
 	int newsock = 0;
@@ -91,11 +93,11 @@ static void * v8_handle(void * p)
 
 static void v8_dispatcher(int sock, V8Handler handler)
 {
-	V8ScgiRequest * request = v8_scgi_request_create();
+	V8Request * request = v8_request_create();
 
 	v8_scgi_request_read(sock, request);
 	handler(NULL, request, NULL);
-	v8_scgi_request_destroy(request);
+	v8_request_destroy(request);
 }
 
 static int v8_init_socket(V8 * v8)
