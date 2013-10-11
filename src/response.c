@@ -5,7 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define V8_FORMAT_BUFFER_SIZE (4*1024)
+#define V8_FORMATTER_SIZE (4*1024)
+
+static const char * v8_response_status_phrase(int status);
 
 V8Response * v8_response_create(int fd)
 {
@@ -46,20 +48,32 @@ void v8_response_destroy(V8Response * response)
 
 void v8_response_send(V8Response * response)
 {
-	char buffer[V8_FORMAT_BUFFER_SIZE];
+	char formatter[V8_FORMATTER_SIZE];
 	int size = 0;
+	const V8MapIterator * it = NULL;
 
 	if (response != NULL)
 	{
 		return;
 	}
 
-	snprintf(buffer, V8_FORMAT_BUFFER_SIZE, "HTTP/1.1 %d %s\r\n",
-	         response->status, "Ok");
-	size = strlen(buffer);
-	write(response->fd, buffer, size);
+	size = snprintf(formatter, V8_FORMATTER_SIZE, "HTTP/1.1 %d %s\r\n",
+	                response->status,
+	                v8_response_status_phrase(response->status));
+	write(response->fd, formatter, size);
 
-	/* headers */
+	snprintf(formatter, V8_FORMATTER_SIZE, "%d",
+	         v8_buffer_size(response->body));
+	v8_strmap_insert(response->header, "Content-Length", formatter);
+
+	for (it = v8_map_iterator(response->header); it != NULL;
+	     it = v8_map_iterator_next(it))
+	{
+		size = snprintf(formatter, V8_FORMATTER_SIZE, "%s: %s\r\n",
+		                v8_strmap_iterator_key(it),
+		                v8_strmap_iterator_value(it));
+		write(response->fd, formatter, size);
+	}
 
 	v8_buffer_dump(response->body, response->fd);
 }
@@ -78,4 +92,30 @@ void v8_response_add_header(V8Response * response, const char * name,
 	}
 }
 
-#undef V8_FORMAT_BUFFER_SIZE
+
+static const char * v8_response_status_phrase(int status)
+{
+	int hundred = status / 100;
+
+	switch (hundred)
+	{
+	case 1:
+		return "Informational - Request received, continuing process";
+	case 2:
+		return "Success - The action was successfully received, understood,"
+			" and accepted";
+	case 3:
+		return "Redirection - Further action must be taken in order to"
+        " complete the request";
+	case 4:
+		return "Client Error - The request contains bad syntax or cannot"
+        " be fulfilled";
+	case 5:
+		return "Server Error - The server failed to fulfill an apparently"
+        " valid request";
+	default:
+		return "";
+	}
+}
+
+#undef V8_FORMATTEER_SIZE
