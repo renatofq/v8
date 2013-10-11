@@ -76,7 +76,7 @@ static void * v8_handle(void * p)
 	const V8Action * actions = v8->actions;
 	int i = 0;
 
-	for (i = 0; actions[i].type != V8_NO_ACTION; ++i)
+	for (i = 0; actions[i].type != V8_ACTION_NONE; ++i)
 	{
 		if (actions[i].route != NULL
 				&& strcmp(actions[i].route, "/") == 0)
@@ -86,7 +86,9 @@ static void * v8_handle(void * p)
 		}
 	}
 
+	close(data->sock);
 	free(data);
+	data = NULL;
 
 	return NULL;
 }
@@ -94,10 +96,12 @@ static void * v8_handle(void * p)
 static void v8_dispatcher(int sock, V8Handler handler)
 {
 	V8Request * request = v8_request_create();
+	V8Response * response = v8_response_create(sock);
 
 	v8_scgi_request_read(sock, request);
-	handler(NULL, request, NULL);
+	handler(NULL, request, response);
 	v8_request_destroy(request);
+	v8_response_destroy(response);
 }
 
 static int v8_init_socket(V8 * v8)
@@ -109,42 +113,44 @@ static int v8_init_socket(V8 * v8)
 	int reuseaddr = 1;
 	int ret = 0;
 
-  /* do{...}while(0) usado para evitar goto */
-	do
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	if (getaddrinfo(NULL, port, &hints, &res) != 0)
 	{
-		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_INET;
-		hints.ai_socktype = SOCK_STREAM;
-		if (getaddrinfo(NULL, port, &hints, &res) != 0)
-		{
-			ret = -1;
-			break;
-		}
+		ret = -1;
+		goto cleanup;
+	}
 
-		/* Create the socket */
-		sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-		if (sock == -1)
-		{
-			ret = -1;
-			break;
-		}
+	/* Create the socket */
+	sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (sock == -1)
+	{
+		ret = -1;
+		goto cleanup;
+	}
 
-		/* Enable the socket to reuse the address */
-		ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
-		                 sizeof(int));
-		if (ret == -1) {
-			break;
-		}
+	/* Enable the socket to reuse the address */
+	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
+	                 sizeof(int));
+	if (ret == -1) {
+		goto cleanup;
+	}
 
-		/* Bind to the address */
-		ret = bind(sock, res->ai_addr, res->ai_addrlen);
-		if (ret == -1) {
-			break;
-		}
+	/* Bind to the address */
+	ret = bind(sock, res->ai_addr, res->ai_addrlen);
+	if (ret == -1) {
+		goto cleanup;
+	}
 
-	} while(0);
 
-	freeaddrinfo(res);
+ cleanup:
+	if (res != NULL)
+	{
+		freeaddrinfo(res);
+		res = NULL;
+	}
+
 	if (ret == -1)
 	{
 		close(sock);

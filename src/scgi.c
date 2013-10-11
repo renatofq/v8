@@ -1,5 +1,5 @@
 #include <v8/scgi.h>
-#include <v8/map.h>
+#include <v8/strmap.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -124,7 +124,7 @@ static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size)
 		value = buffer + i;
 		i += strlen(buffer + i) + 1;
 
-		v8_map_insert(header, key, value);
+		v8_strmap_insert(header, key, value);
 	}
 }
 
@@ -135,7 +135,7 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 	int length = 0;
 	int read_size = 0;
 
-	length_str = v8_map_value(request->header, "CONTENT_LENGTH");
+	length_str = v8_strmap_value(request->header, "CONTENT_LENGTH");
 	if (length_str == NULL)
 	{
 		return -1;
@@ -168,45 +168,45 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 
 static void v8_scgi_fill_method(V8Request * request)
 {
-	const char * method_str = v8_map_value(request->header, "REQUEST_METHOD");
+	const char * method_str = v8_strmap_value(request->header, "REQUEST_METHOD");
 
 	if(method_str == NULL)
 	{
-		request->method = V8_UNKNOWN;
+		request->method = V8_METHOD_UNKNOWN;
 		return;
 	}
 
 	if(strcmp(method_str, "GET") == 0)
 	{
-		request->method = V8_GET;
+		request->method = V8_METHOD_GET;
 	}
 	else if(strcmp(method_str, "POST") == 0)
 	{
-		request->method = V8_POST;
+		request->method = V8_METHOD_POST;
 	}
 	else if(strcmp(method_str, "HEAD") == 0)
 	{
-		request->method = V8_HEAD;
+		request->method = V8_METHOD_HEAD;
 	}
 	else if(strcmp(method_str, "OPTIONS") == 0)
 	{
-		request->method = V8_HEAD;
+		request->method = V8_METHOD_OPTIONS;
 	}
 	else if(strcmp(method_str, "PUT") == 0)
 	{
-		request->method = V8_PUT;
+		request->method = V8_METHOD_PUT;
 	}
 	else if(strcmp(method_str, "DELETE") == 0)
 	{
-		request->method = V8_DELETE;
+		request->method = V8_METHOD_DELETE;
 	}
 	else if(strcmp(method_str, "TRACE") == 0)
 	{
-		request->method = V8_TRACE;
+		request->method = V8_METHOD_TRACE;
 	}
 	else
 	{
-		request->method = V8_UNKNOWN;
+		request->method = V8_METHOD_UNKNOWN;
 	}
 }
 
@@ -282,7 +282,7 @@ static void v8_scgi_add_param(V8Request * request, char * param)
 	*str = '\0';
 	++str;
 
-	v8_map_insert(request->params, param, str);
+	v8_strmap_insert(request->params, param, str);
 }
 
 static void v8_scgi_parse_query(V8Request * request)
@@ -296,7 +296,7 @@ static void v8_scgi_parse_query(V8Request * request)
 		goto cleanup;
 	}
 
-	query = v8_map_value(request->header, "QUERY_STRING");
+	query = v8_strmap_value(request->header, "QUERY_STRING");
 	if (query == NULL)
 	{
 		goto cleanup;

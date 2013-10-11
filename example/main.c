@@ -8,8 +8,8 @@ void handler(const V8Context * context, const V8Request * request,
 						 V8Response * response);
 
 static V8Action actions[] = {
-	{V8_SIMPLE_ACTION, V8_GET, "/", handler},
-	{V8_NO_ACTION, V8_UNKNOWN, "", NULL}
+	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", handler},
+	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL}
 };
 
 void handler(const V8Context * context, const V8Request * request,

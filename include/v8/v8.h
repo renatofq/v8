@@ -2,19 +2,16 @@
 #define V8_H
 
 #include <v8/request.h>
+#include <v8/response.h>
 
 typedef enum v8_action_type_e
 {
-	V8_SIMPLE_ACTION,
-	V8_NO_ACTION
+	V8_ACTION_SIMPLE,
+	V8_ACTION_NONE
 } V8ActionType;
 
 typedef struct
 {} V8Context;
-
-
-typedef struct
-{} V8Response;
 
 
 typedef void (*V8Handler)(const V8Context *, const V8Request *, V8Response *);
@@ -22,7 +19,7 @@ typedef void (*V8Handler)(const V8Context *, const V8Request *, V8Response *);
 typedef struct v8_action_t
 {
 	V8ActionType type;
-	V8Verb verb;
+	V8RequestMethod method;
 	char route[512];
 	V8Handler handler;
 } V8Action;

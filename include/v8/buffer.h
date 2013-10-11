@@ -12,7 +12,7 @@ V8Buffer * v8_buffer_create(void);
 
 void v8_buffer_destroy(V8Buffer * buffer);
 
-int v8_buffer_write(V8Buffer * buffer, void * data, int size);
+int v8_buffer_write(V8Buffer * buffer, const void * data, int size);
 
 int v8_buffer_dump(const V8Buffer * buffer, int fd);
 
