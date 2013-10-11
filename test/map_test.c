@@ -6,11 +6,6 @@
 #include <string.h>
 
 
-void print_pair(v8_key_t key, const void * value)
-{
-    printf("%llu -> %s \n", key, (const char *)value);
-}
-
 int main(void)
 {
 
@@ -20,7 +15,6 @@ int main(void)
     v8_strmap_insert(map, "k1", "v1");
     v8_strmap_insert(map, "k2", "v2");
     v8_strmap_insert(map, "k3", "v3");
-    v8_map_iterate(map, print_pair);
 
     assert_that("find k2", strcmp(v8_strmap_value(map, "k2"), "v2") == 0);
 
@@ -44,6 +38,8 @@ int main(void)
 
     printf("Destroy map\n");
     v8_map_destroy(map);
+    map = NULL;
+    v8_strmap_value(map, "k1");
 
     printf("Done\n");
 
