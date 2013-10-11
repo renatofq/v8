@@ -107,6 +107,56 @@ void v8_map_iterate(const V8Map * map, V8MapVisitor visitor)
 	v8_map_iterate_r(map->root, visitor);
 }
 
+
+const V8MapIterator * v8_map_iterator(const V8Map * map)
+{
+	if (map == NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		return map->root;
+	}
+}
+
+const V8MapIterator * v8_map_iterator_next(const V8MapIterator * it)
+{
+	if (it == NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		return it->next;
+	}
+}
+
+const v8_key_t v8_map_iterator_key(const V8MapIterator * it)
+{
+	if (it == NULL)
+	{
+		return 0;
+	}
+	else
+	{
+		return it->key;
+	}
+}
+
+const void * v8_map_iterator_value(const V8MapIterator * it)
+{
+	if (it == NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		return it->value;
+	}
+}
+
+
 static V8MapNode * v8_map_node_create(const V8Map * map, v8_key_t key,
                                       const void * value)
 {
