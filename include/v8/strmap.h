@@ -11,4 +11,9 @@ int v8_strmap_remove(V8Map * map, const char * key);
 
 const char * v8_strmap_value(const V8Map * map,  const char * key);
 
+const char * v8_strmap_iterator_key(const V8MapIterator * it);
+
+const char * v8_strmap_iterator_value(const V8MapIterator * it);
+
+
 #endif
