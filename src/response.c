@@ -1,6 +1,5 @@
 #include <v8/response.h>
 #include <v8/list.h>
-#include <v8/cookie.h>
 
 #include <stdlib.h>
 #include <stdio.h>

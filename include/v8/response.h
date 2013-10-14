@@ -3,6 +3,7 @@
 
 #include <v8/buffer.h>
 #include <v8/strmap.h>
+#include <v8/cookie.h>
 
 typedef enum
 {
@@ -52,6 +53,7 @@ typedef enum
 typedef struct v8_response_t V8Response;
 
 V8Response * v8_response_create(int fd);
+
 void v8_response_destroy(V8Response * response);
 
 void v8_response_send(V8Response * response);
