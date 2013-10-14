@@ -4,16 +4,14 @@
 #include <v8/v8.h>
 
 
-void handler(const V8Context * context, const V8Request * request,
-						 V8Response * response);
+void handler(const V8Request * request, V8Response * response);
 
 static V8Action actions[] = {
 	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", handler},
 	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL}
 };
 
-void handler(const V8Context * context, const V8Request * request,
-						 V8Response * response)
+void handler(const V8Request * request, V8Response * response)
 {
 	printf("teste: %s\n", v8_request_param(request, "teste"));
 	printf("teste2: %s\n", v8_request_param(request, "teste2"));

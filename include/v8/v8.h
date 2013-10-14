@@ -10,11 +10,9 @@ typedef enum v8_action_type_e
 	V8_ACTION_NONE
 } V8ActionType;
 
-typedef struct
-{} V8Context;
 
 
-typedef void (*V8Handler)(const V8Context *, const V8Request *, V8Response *);
+typedef void (*V8Handler)(const V8Request *, V8Response *);
 
 typedef struct v8_action_t
 {

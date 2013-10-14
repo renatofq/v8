@@ -99,7 +99,7 @@ static void v8_dispatcher(int sock, V8Handler handler)
 	V8Response * response = v8_response_create(sock);
 
 	v8_scgi_request_read(sock, request);
-	handler(NULL, request, response);
+	handler(request, response);
 	v8_request_destroy(request);
 	v8_response_destroy(response);
 }
