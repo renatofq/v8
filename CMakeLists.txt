@@ -6,8 +6,10 @@ add_definitions(-Wall -Werror -std=gnu99)
 
 set(SRC_DIR src)
 set(SRC ${SRC_DIR}/buffer.c
+        ${SRC_DIR}/list.c
         ${SRC_DIR}/map.c
         ${SRC_DIR}/strmap.c
+        ${SRC_DIR}/cookie.c
         ${SRC_DIR}/request.c
         ${SRC_DIR}/response.c
         ${SRC_DIR}/scgi.c

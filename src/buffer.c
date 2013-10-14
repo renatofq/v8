@@ -58,7 +58,7 @@ int v8_buffer_size(const V8Buffer * buffer)
   }
 }
 
-int v8_buffer_write(V8Buffer * buffer, const void * data, int size)
+int v8_buffer_append(V8Buffer * buffer, const void * data, int size)
 {
 
 	if (buffer == NULL || data == NULL || size <= 0)

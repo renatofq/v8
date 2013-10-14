@@ -49,16 +49,15 @@ typedef enum
 	V8_STATUS_UNKNOWN = 0
 } V8ResponseStatus;
 
-typedef struct
-{
-	int fd;
-	V8ResponseStatus status;
-	V8Map * header;
-	V8Buffer * body;
-} V8Response;
-
+typedef struct v8_response_t V8Response;
 
 V8Response * v8_response_create(int fd);
 void v8_response_destroy(V8Response * response);
+
+void v8_response_send(V8Response * response);
+
+void v8_response_write(V8Response * response, const char * data);
+void v8_response_add_header(V8Response * response, const char * name,
+                            const char * value);
 
 #endif

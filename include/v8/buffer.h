@@ -9,7 +9,7 @@ void v8_buffer_destroy(V8Buffer * buffer);
 
 int v8_buffer_size(const V8Buffer * buffer);
 
-int v8_buffer_write(V8Buffer * buffer, const void * data, int size);
+int v8_buffer_append(V8Buffer * buffer, const void * data, int size);
 
 int v8_buffer_dump(const V8Buffer * buffer, int fd);
 
