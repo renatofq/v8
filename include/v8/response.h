@@ -57,7 +57,14 @@ void v8_response_destroy(V8Response * response);
 void v8_response_send(V8Response * response);
 
 void v8_response_write(V8Response * response, const char * data);
+
+V8ResponseStatus v8_response_status(V8Response * response);
+
+void v8_response_set_status(V8Response * response, V8ResponseStatus status);
+
 void v8_response_add_header(V8Response * response, const char * name,
                             const char * value);
+
+void v8_response_add_cookie(V8Response * response, const V8Cookie * cookie);
 
 #endif

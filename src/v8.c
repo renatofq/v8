@@ -100,6 +100,7 @@ static void v8_dispatcher(int sock, V8Handler handler)
 
 	v8_scgi_request_read(sock, request);
 	handler(request, response);
+	v8_response_send(response);
 	v8_request_destroy(request);
 	v8_response_destroy(response);
 }

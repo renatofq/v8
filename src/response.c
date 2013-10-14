@@ -120,6 +120,27 @@ void v8_response_write(V8Response * response, const char * data)
 	v8_buffer_append(response->body, data, strlen(data));
 }
 
+void v8_response_set_status(V8Response * response, V8ResponseStatus status)
+{
+	if (response != NULL)
+	{
+		response->status = status;
+	}
+}
+
+V8ResponseStatus v8_response_status(V8Response * response)
+{
+	if (response == NULL)
+	{
+		return V8_STATUS_UNKNOWN;
+	}
+	else
+	{
+		return response->status;
+	}
+}
+
+
 void v8_response_add_header(V8Response * response, const char * name,
                             const char * value)
 {
