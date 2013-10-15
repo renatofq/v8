@@ -6,7 +6,7 @@
 
 struct v8_buffer_t
 {
-	void * p;
+	char * p;
 	int size;
 	int pos;
 };
@@ -43,7 +43,7 @@ void v8_buffer_destroy(V8Buffer * buffer)
 	}
 
 	buffer->size = 0;
-	buffer->pos = -1;
+	buffer->pos = 0;
 }
 
 int v8_buffer_size(const V8Buffer * buffer)
@@ -58,13 +58,16 @@ int v8_buffer_size(const V8Buffer * buffer)
   }
 }
 
-int v8_buffer_append(V8Buffer * buffer, const void * data, int size)
+int v8_buffer_append(V8Buffer * buffer, const char * str)
 {
+	int size = 0;
 
-	if (buffer == NULL || data == NULL || size <= 0)
+	if (buffer == NULL || str == NULL)
 	{
 		return 0;
 	}
+
+	size = strlen(str);
 
 	if (buffer->pos + size > buffer->size)
   {
@@ -84,7 +87,7 @@ int v8_buffer_append(V8Buffer * buffer, const void * data, int size)
 		}
   }
 
-	memcpy(buffer->p + buffer->pos, data, size);
+	strncpy(buffer->p + buffer->pos, str, size);
 	buffer->pos += size;
 
 	return size;

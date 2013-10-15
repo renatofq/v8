@@ -75,15 +75,15 @@ void v8_response_send(V8Response * response)
 	const V8MapIterator * mapIt = NULL;
 	const V8ListIterator * listIt = NULL;
 
-	if (response != NULL)
+	if (response == NULL)
 	{
 		return;
 	}
 
-	size = snprintf(form, V8_FORMATTER_SIZE, "HTTP/1.1 %d %s\r\n",
-	                response->status,
-	                v8_response_status_phrase(response->status));
-	write(response->fd, form, size);
+	/* Necessario somar o \r\n no final da resposta */
+	size = snprintf(form, V8_FORMATTER_SIZE, "%d %s", response->status,
+	                v8_response_status_phrase(response->status) + 2);
+	v8_strmap_insert(response->header, "Status", form);
 
 	snprintf(form, V8_FORMATTER_SIZE, "%d",
 	         v8_buffer_size(response->body));
@@ -111,12 +111,15 @@ void v8_response_send(V8Response * response)
 	size = snprintf(form, V8_FORMATTER_SIZE, "\r\n");
 	write(response->fd, form, size);
 
+
 	v8_buffer_dump(response->body, response->fd);
+	size = snprintf(form, V8_FORMATTER_SIZE, "\r\n");
+	write(response->fd, form, size);
 }
 
 void v8_response_write(V8Response * response, const char * data)
 {
-	v8_buffer_append(response->body, data, strlen(data));
+	v8_buffer_append(response->body, data);
 }
 
 void v8_response_set_status(V8Response * response, V8ResponseStatus status)
