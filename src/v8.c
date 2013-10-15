@@ -107,7 +107,7 @@ static void v8_dispatcher(int sock, V8Handler handler)
 
 static int v8_init_socket(V8 * v8)
 {
-	int sock;
+	int sock = -1;
 	char port[] = "4000";
 	struct addrinfo hints;
 	struct addrinfo * res = NULL;
