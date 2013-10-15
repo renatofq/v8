@@ -1,5 +1,7 @@
 #include <v8/v8.h>
 #include <v8/scgi.h>
+#include <v8/config.h>
+
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,6 +10,15 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <string.h>
+
+
+struct v8_t
+{
+	int sock;
+	V8Config * config;
+	const V8Action * actions;
+};
+
 
 typedef struct v8_thred_data_t
 {
@@ -24,12 +35,12 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
 
-	v8->actions = actions;
-
-	/* TODO: tratar retorno  */
-	v8_init_socket(v8);
-	/* TODO: carregar da configuracao */
-	v8->backlog = 1;
+	if (v8 != NULL)
+	{
+		v8->actions = actions;
+		v8->config = v8_config_create_from_file(configFile);
+		v8_init_socket(v8);
+	}
 
 	return v8;
 }
@@ -39,10 +50,12 @@ int v8_start(const V8 * v8)
 {
 	int ret = 0;
 	int newsock = 0;
+	int backlog = 0;
 	pthread_t thread;
 	pthread_attr_t attr;
 
-	ret = listen(v8->sock, v8->backlog);
+	backlog = v8_config_int(v8->config, "v8.socket_backlog", 1);
+	ret = listen(v8->sock, backlog);
 	if (ret == -1)
 	{
 		return ret;
@@ -55,7 +68,6 @@ int v8_start(const V8 * v8)
 	{
 		newsock = accept(v8->sock, NULL, NULL);
 
-		/* TODO: logar erro */
 		if (newsock != -1)
 		{
 			V8ThreadData * data =
@@ -108,16 +120,20 @@ static void v8_dispatcher(int sock, V8Handler handler)
 static int v8_init_socket(V8 * v8)
 {
 	int sock = -1;
-	char port[] = "4000";
+	const char * node = NULL;
+	const char * port = NULL;
 	struct addrinfo hints;
 	struct addrinfo * res = NULL;
 	int reuseaddr = 1;
 	int ret = 0;
 
+	node = v8_config_str(v8->config, "v8.listen", "127.0.0.1");
+	port = v8_config_str(v8->config, "v8.port", "4900");
+
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
-	if (getaddrinfo(NULL, port, &hints, &res) != 0)
+	if (getaddrinfo(node, port, &hints, &res) != 0)
 	{
 		ret = -1;
 		goto cleanup;

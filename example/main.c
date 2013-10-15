@@ -13,16 +13,22 @@ static V8Action actions[] = {
 
 void handler(const V8Request * request, V8Response * response)
 {
-	printf("teste: %s\n", v8_request_param(request, "teste"));
-	printf("teste2: %s\n", v8_request_param(request, "teste2"));
-	printf("teste3: %s\n", v8_request_param(request, "teste3"));
+	v8_response_set_status(response, V8_STATUS_OK);
+	v8_response_add_header(response, "Content-Type", "text/html");
+	v8_response_write(response, "<H1>Hello Turbo</h1>");
 }
 
 int main(int argc, char * argv[])
 {
-	V8 * v8;
+	V8 * v8 = NULL;
 
-	v8 = v8_init(NULL, actions);
+	if (argc != 2)
+  {
+	  printf("E necessario o nome do arquivo de configuracao, e somente\n");
+	  return -1;
+  }
+
+	v8 = v8_init(argv[1], actions);
 
 	v8_start(v8);
 

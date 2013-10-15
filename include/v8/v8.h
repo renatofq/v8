@@ -11,7 +11,7 @@ typedef enum v8_action_type_e
 } V8ActionType;
 
 
-
+typedef struct v8_t V8;
 typedef void (*V8Handler)(const V8Request *, V8Response *);
 
 typedef struct v8_action_t
@@ -22,12 +22,6 @@ typedef struct v8_action_t
 	V8Handler handler;
 } V8Action;
 
-typedef struct v8_t
-{
-	int sock;
-	int backlog;
-	const V8Action * actions;
-} V8;
 
 V8 * v8_init(const char * configFile, const V8Action * actions);
 
