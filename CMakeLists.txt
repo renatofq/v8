@@ -13,6 +13,7 @@ set(SRC ${SRC_DIR}/buffer.c
         ${SRC_DIR}/request.c
         ${SRC_DIR}/response.c
         ${SRC_DIR}/scgi.c
+        ${SRC_DIR}/config.c
         ${SRC_DIR}/v8.c)
 
 set(HDR include/*.h)
