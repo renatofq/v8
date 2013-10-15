@@ -2,10 +2,13 @@ cmake_minimum_required(VERSION 2.8)
 
 project(v8)
 
+set(CMAKE_C_FLAGS_DEBUG -DV8_DEBUG)
+
 add_definitions(-Wall -Werror -std=gnu99)
 
 set(SRC_DIR src)
-set(SRC ${SRC_DIR}/buffer.c
+set(SRC ${SRC_DIR}/log.c
+        ${SRC_DIR}/buffer.c
         ${SRC_DIR}/list.c
         ${SRC_DIR}/map.c
         ${SRC_DIR}/strmap.c
