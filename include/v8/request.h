@@ -15,14 +15,17 @@ typedef enum v8_verb_e
 	V8_METHOD_UNKNOWN
 } V8RequestMethod;
 
+
 typedef struct v8_request_t
 {
 	V8RequestMethod method;
+	char * route;
 	V8Map * header;
 	V8Map * params;
 	char * body;
 	int body_size;
 } V8Request;
+
 
 V8Request * v8_request_create(void);
 
@@ -33,6 +36,8 @@ const char * v8_request_param(const V8Request * request, const char * param);
 const char * v8_request_header(const V8Request * request, const char * header);
 
 V8RequestMethod v8_request_method(const V8Request * request);
+
+const char * v8_request_route(const V8Request * request);
 
 const char * v8_request_query_string(const V8Request * request);
 

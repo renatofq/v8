@@ -1,4 +1,5 @@
 #include <v8/v8.h>
+#include <v8/log.h>
 #include <v8/scgi.h>
 #include <v8/config.h>
 
@@ -29,7 +30,6 @@ typedef struct v8_thred_data_t
 
 static int v8_init_socket(V8 * v8);
 static void * v8_handle(void * p);
-static void v8_dispatcher(int sock, V8Handler handler);
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
@@ -84,37 +84,47 @@ int v8_start(const V8 * v8)
 static void * v8_handle(void * p)
 {
 	V8ThreadData * data = (V8ThreadData *)p;
+
+	int sock = data->sock;
 	const V8 * v8 = data->v8;
 	const V8Action * actions = v8->actions;
+	V8Request * request = v8_request_create();
+	V8Response * response = v8_response_create(sock);
+	const char * route;
 	int i = 0;
+
+	v8_scgi_request_read(sock, request);
+	route = v8_request_route(request);
+
+	v8_log_debug("Requisicao para %s", route);
 
 	for (i = 0; actions[i].type != V8_ACTION_NONE; ++i)
 	{
 		if (actions[i].route != NULL
-				&& strcmp(actions[i].route, "/") == 0)
+		    && strcmp(route, actions[i].route) == 0)
 		{
-			v8_dispatcher(data->sock, actions[i].handler);
-			break;
+			if (actions[i].filter == NULL || actions[i].filter(request))
+			{
+				actions[i].handler(request, response);
+				break;
+			}
 		}
 	}
 
-	close(data->sock);
+	if (actions[i].type == V8_ACTION_NONE)
+	{
+		v8_log_warn("Acao nao encontrada para: %s", route);
+		v8_response_set_status(response, V8_STATUS_NOT_FOUND);
+	}
+
+	v8_response_send(response);
+	v8_response_destroy(response);
+	v8_request_destroy(request);
+	close(sock);
 	free(data);
 	data = NULL;
 
 	return NULL;
-}
-
-static void v8_dispatcher(int sock, V8Handler handler)
-{
-	V8Request * request = v8_request_create();
-	V8Response * response = v8_response_create(sock);
-
-	v8_scgi_request_read(sock, request);
-	handler(request, response);
-	v8_response_send(response);
-	v8_request_destroy(request);
-	v8_response_destroy(response);
 }
 
 static int v8_init_socket(V8 * v8)

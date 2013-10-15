@@ -4,11 +4,12 @@
 #include <v8/v8.h>
 
 
+int is_admin(const V8Request * request);
 void handler(const V8Request * request, V8Response * response);
 
 static V8Action actions[] = {
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", handler},
-	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL}
+	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", handler, is_admin},
+	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL, NULL}
 };
 
 void handler(const V8Request * request, V8Response * response)
@@ -16,6 +17,11 @@ void handler(const V8Request * request, V8Response * response)
 	v8_response_set_status(response, V8_STATUS_OK);
 	v8_response_add_header(response, "Content-Type", "text/html");
 	v8_response_write(response, "<H1>Hello Turbo</h1>");
+}
+
+int is_admin(const V8Request * request)
+{
+	return 1;
 }
 
 int main(int argc, char * argv[])

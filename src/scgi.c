@@ -15,6 +15,7 @@ static int v8_scgi_read_header(int fd, char * buffer);
 static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size);
 static int v8_scgi_read_body(int fd, V8Request * request);
 static void v8_scgi_fill_method(V8Request * request);
+static void v8_scgi_fill_route(V8Request * request);
 static void v8_scgi_parse_query(V8Request * request);
 static void v8_scgi_split_params(V8Request * request,  char * query);
 static void v8_scgi_add_param(V8Request * request, char * param);
@@ -53,6 +54,7 @@ int v8_scgi_request_read(int fd, V8Request * request)
 	}
 
 	v8_scgi_fill_method(request);
+	v8_scgi_fill_route(request);
 	v8_scgi_parse_query(request);
 
  cleanup:
@@ -208,6 +210,24 @@ static void v8_scgi_fill_method(V8Request * request)
 	{
 		request->method = V8_METHOD_UNKNOWN;
 	}
+}
+
+static void v8_scgi_fill_route(V8Request * request)
+{
+	const char * route = v8_strmap_value(request->header, "path_info");
+
+	if(route == NULL)
+	{
+		return;
+	}
+
+	request->route = (char *)malloc(strlen(route));
+	if (request->route == NULL)
+  {
+	  return;
+  }
+
+	strcpy(request->route, route);
 }
 
 static void v8_scgi_decode_url(const char * src, char * dest)

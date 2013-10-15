@@ -80,9 +80,8 @@ void v8_response_send(V8Response * response)
 		return;
 	}
 
-	/* Necessario somar o \r\n no final da resposta */
 	size = snprintf(form, V8_FORMATTER_SIZE, "%d %s", response->status,
-	                v8_response_status_phrase(response->status) + 2);
+	                v8_response_status_phrase(response->status));
 	v8_strmap_insert(response->header, "Status", form);
 
 	snprintf(form, V8_FORMATTER_SIZE, "%d",
