@@ -1,5 +1,6 @@
 #include <v8/config.h>
 #include <v8/strmap.h>
+#include <v8/log.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,16 +33,18 @@ V8Config * v8_config_create(void)
 V8Config * v8_config_create_from_file(const char * filename)
 {
 	char line[V8_CONFIG_BUFFER_SIZE];
-  /* !!! ATENCAO !!!
-     Ao modificar o tamaho dos arrays key e val certifique-se
-     de atualizar os scanfs onde sao usados ao longo da funcao */
+
+  /* !!! WARNING !!!
+     When modifying the size of key and/or val arrays ensure that the
+     scanfs calls are updated accordingly */
 	char key[256];
 	char val[256];
+
 	char * str = NULL;
 	FILE * file = NULL;
 	int bad_format = 0;
 	V8Config * config = v8_config_create();
-
+	int ret = 0;
 
 	if (config == NULL)
   {
@@ -62,14 +65,18 @@ V8Config * v8_config_create_from_file(const char * filename)
 			continue;
 		}
 
-	  /* Descarta comentarios e quebra de linha */
+	  /* Drop comments and line breaks */
 	  strtok(line, "\n#;");
-
-	  if (sscanf(line, "%255[a-zA-Z.] = %255[a-zA-Z0-9]", key, val) != 2)
+	  ret = sscanf(line, "%255[a-zA-Z.] = %255[a-zA-Z0-9.]", key, val);
+	  if (ret == 1)
 		{
-			/* malformatado */
+			v8_log_error("Configuration file ill formed at line %s", line);
 			bad_format = 1;
 			break;
+		}
+	  else if (ret != 2)
+		{
+			continue;
 		}
 
 	  v8_strmap_insert(config->map, key, val);
@@ -141,7 +148,7 @@ const char * v8_config_str(const V8Config * config, const char * key,
 	}
 }
 
-void v8_config_set_str(const V8Config * config, const char * key,
+void v8_config_set_str(V8Config * config, const char * key,
                        const char * val)
 {
 	if (config == NULL || key == NULL)
@@ -174,7 +181,7 @@ int v8_config_int(const V8Config * config, const char * key, const int def)
 
 }
 
-void v8_config_set_int(const V8Config * config, const char * key, const int val)
+void v8_config_set_int(V8Config * config, const char * key, const int val)
 {
 	char str[12];
 

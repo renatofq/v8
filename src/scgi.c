@@ -1,5 +1,6 @@
 #include <v8/scgi.h>
 #include <v8/strmap.h>
+#include <v8/log.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,6 +35,7 @@ int v8_scgi_request_read(int fd, V8Request * request)
 	buffer = (char *)malloc(V8_SCGI_MAX_HEADER_SIZE);
 	if (buffer == NULL)
 	{
+		v8_log_error("Could no allocate memory to read request");
 		ret = -1;
 		goto out;
 	}
@@ -41,6 +43,7 @@ int v8_scgi_request_read(int fd, V8Request * request)
 	ret = v8_scgi_read_header(fd, buffer);
 	if (ret <= 0)
 	{
+		v8_log_error("Could no read request header");
 		ret = -1;
 		goto cleanup;
 	}
@@ -49,6 +52,7 @@ int v8_scgi_request_read(int fd, V8Request * request)
 	ret = v8_scgi_read_body(fd, request);
 	if (ret < 0)
 	{
+		v8_log_error("Could no read request body");
 		ret = -1;
 		goto cleanup;
 	}
@@ -174,6 +178,7 @@ static void v8_scgi_fill_method(V8Request * request)
 
 	if(method_str == NULL)
 	{
+		v8_log_error("Method is unknown");
 		request->method = V8_METHOD_UNKNOWN;
 		return;
 	}
@@ -188,26 +193,32 @@ static void v8_scgi_fill_method(V8Request * request)
 	}
 	else if(strcmp(method_str, "HEAD") == 0)
 	{
+		v8_log_warn("Method %s is not implemented", method_str);
 		request->method = V8_METHOD_HEAD;
 	}
 	else if(strcmp(method_str, "OPTIONS") == 0)
 	{
+		v8_log_warn("Method %s is not implemented", method_str);
 		request->method = V8_METHOD_OPTIONS;
 	}
 	else if(strcmp(method_str, "PUT") == 0)
 	{
+		v8_log_warn("Method %s is not implemented", method_str);
 		request->method = V8_METHOD_PUT;
 	}
 	else if(strcmp(method_str, "DELETE") == 0)
 	{
+		v8_log_warn("Method %s is not implemented", method_str);
 		request->method = V8_METHOD_DELETE;
 	}
 	else if(strcmp(method_str, "TRACE") == 0)
 	{
+		v8_log_warn("Method %s is not implemented", method_str);
 		request->method = V8_METHOD_TRACE;
 	}
 	else
 	{
+		v8_log_error("Method is unknown");
 		request->method = V8_METHOD_UNKNOWN;
 	}
 }
@@ -218,12 +229,14 @@ static void v8_scgi_fill_route(V8Request * request)
 
 	if(route == NULL)
 	{
+		v8_log_error("path_info is not defined");
 		return;
 	}
 
 	request->route = (char *)malloc(strlen(route));
 	if (request->route == NULL)
   {
+	  v8_log_error("Error while trying to get path_info");
 	  return;
   }
 
@@ -316,7 +329,15 @@ static void v8_scgi_parse_query(V8Request * request)
 		goto cleanup;
 	}
 
-	query = v8_strmap_value(request->header, "QUERY_STRING");
+	if (request->method != V8_METHOD_POST)
+	{
+		query = v8_strmap_value(request->header, "QUERY_STRING");
+	}
+	else
+	{
+		query = request->body;
+	}
+
 	if (query == NULL)
 	{
 		goto cleanup;
@@ -331,6 +352,7 @@ static void v8_scgi_parse_query(V8Request * request)
 	buffer = (char *)malloc(len + 1);
 	if (buffer == NULL)
 	{
+		v8_log_error("error parsing params");
 		goto cleanup;
 	}
 

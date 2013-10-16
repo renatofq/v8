@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <v8/v8.h>
-
+#include <v8/log.h>
 
 int is_admin(const V8Request * request);
 void handler(const V8Request * request, V8Response * response);

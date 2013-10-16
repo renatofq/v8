@@ -31,9 +31,12 @@ typedef struct v8_thred_data_t
 static int v8_init_socket(V8 * v8);
 static void * v8_handle(void * p);
 
+
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
+
+	v8_log_level_set(V8_LOG_DEBUG);
 
 	if (v8 != NULL)
 	{
@@ -96,7 +99,8 @@ static void * v8_handle(void * p)
 	v8_scgi_request_read(sock, request);
 	route = v8_request_route(request);
 
-	v8_log_debug("Requisicao para %s", route);
+	v8_log_debug("Request receiveid -> Method: %d Path: %s",
+	             v8_request_method(request), route);
 
 	for (i = 0; actions[i].type != V8_ACTION_NONE; ++i)
 	{
@@ -113,7 +117,7 @@ static void * v8_handle(void * p)
 
 	if (actions[i].type == V8_ACTION_NONE)
 	{
-		v8_log_warn("Acao nao encontrada para: %s", route);
+		v8_log_warn("Action not found %s", route);
 		v8_response_set_status(response, V8_STATUS_NOT_FOUND);
 	}
 
