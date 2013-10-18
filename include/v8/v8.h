@@ -1,6 +1,7 @@
 #ifndef V8_H
 #define V8_H
 
+#include <v8/log.h>
 #include <v8/request.h>
 #include <v8/response.h>
 

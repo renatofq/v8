@@ -1,5 +1,6 @@
 #include <v8/response.h>
 #include <v8/list.h>
+#include <v8/lua.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,14 +9,6 @@
 
 #define V8_FORMATTER_SIZE (4*1024)
 
-struct v8_response_t
-{
-	int fd;
-	V8ResponseStatus status;
-	V8Map * header;
-	V8List * cookies;
-	V8Buffer * body;
-};
 
 
 static const char * v8_response_status_phrase(int status);
@@ -29,6 +22,7 @@ V8Response * v8_response_create(int fd)
 		response->fd = fd;
 		response->status = V8_STATUS_UNKNOWN;
 		response->header = v8_strmap_create();
+		response->view = NULL; /* lazy allocation */
 		response->cookies =
 			v8_list_create(NULL, (V8ListDestructor)v8_cookie_destroy);
 		response->body = v8_buffer_create();
@@ -50,6 +44,12 @@ void v8_response_destroy(V8Response * response)
 	{
 		v8_map_destroy(response->header);
 		response->header = NULL;
+	}
+
+	if (response->view != NULL)
+	{
+		v8_view_destroy(response->view);
+		response->view = NULL;
 	}
 
 	if (response->cookies != NULL)
@@ -121,6 +121,21 @@ void v8_response_write(V8Response * response, const char * data)
 	v8_buffer_append(response->body, data);
 }
 
+V8View * v8_response_view(V8Response * response)
+{
+	if (response == NULL)
+	{
+		return NULL;
+	}
+
+	if (response->view == NULL)
+	{
+		response->view = v8_view_create(response->body);
+	}
+
+	return response->view;
+}
+
 void v8_response_set_status(V8Response * response, V8ResponseStatus status)
 {
 	if (response != NULL)
@@ -158,6 +173,20 @@ void v8_response_add_cookie(V8Response * response, const V8Cookie * cookie)
 		v8_list_insert(response->cookies, cookie);
 	}
 }
+
+void v8_response_ok(V8Response * response, const char * file)
+{
+	if (response == NULL)
+	{
+		return;
+	}
+
+	v8_response_set_status(response, V8_STATUS_OK);
+	v8_response_add_header(response, "Content-Type", "text/html");
+
+	v8_view_render(response->view, file);
+}
+
 
 static const char * v8_response_status_phrase(int status)
 {

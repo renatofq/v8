@@ -3,6 +3,8 @@
 
 #include <v8/buffer.h>
 #include <v8/strmap.h>
+#include <v8/list.h>
+#include <v8/view.h>
 #include <v8/cookie.h>
 
 typedef enum
@@ -50,15 +52,28 @@ typedef enum
 	V8_STATUS_UNKNOWN = 0
 } V8ResponseStatus;
 
-typedef struct v8_response_t V8Response;
+typedef struct v8_response_t
+{
+	int fd;
+	V8ResponseStatus status;
+	V8Map * header;
+	V8List * cookies;
+	V8View * view;
+	V8Buffer * body;
+} V8Response;
+
 
 V8Response * v8_response_create(int fd);
 
 void v8_response_destroy(V8Response * response);
 
+void v8_response_ok(V8Response * response, const char * file);
+
 void v8_response_send(V8Response * response);
 
 void v8_response_write(V8Response * response, const char * data);
+
+V8View * v8_response_view(V8Response * response);
 
 V8ResponseStatus v8_response_status(V8Response * response);
 

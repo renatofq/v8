@@ -6,10 +6,11 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <pthread.h>
 #include <string.h>
 
 
@@ -30,7 +31,9 @@ typedef struct v8_thred_data_t
 
 static int v8_init_socket(V8 * v8);
 static void * v8_handle(void * p);
+static void v8_sigsegv_handler(int signum);
 
+static volatile sig_atomic_t g_v8_quit = 0;
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
@@ -56,18 +59,25 @@ int v8_start(const V8 * v8)
 	int backlog = 0;
 	pthread_t thread;
 	pthread_attr_t attr;
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = v8_sigsegv_handler;
+
+	sigaction(SIGSEGV, &act, NULL);
 
 	backlog = v8_config_int(v8->config, "v8.socket_backlog", 1);
 	ret = listen(v8->sock, backlog);
 	if (ret == -1)
 	{
+		v8_log_error("Failed to listen socket");
 		return ret;
 	}
 
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	while (1)
+	while (g_v8_quit == 0)
 	{
 		newsock = accept(v8->sock, NULL, NULL);
 
@@ -82,6 +92,8 @@ int v8_start(const V8 * v8)
 	}
 
 	pthread_attr_destroy(&attr);
+
+	return 0;
 }
 
 static void * v8_handle(void * p)
@@ -184,6 +196,7 @@ static int v8_init_socket(V8 * v8)
 
 	if (ret == -1)
 	{
+		v8_log_error("Failed to create and/or bind to socket");
 		close(sock);
 		sock = -1;
 	}
@@ -191,4 +204,13 @@ static int v8_init_socket(V8 * v8)
 	v8->sock = sock;
 
 	return ret;
+}
+
+
+static void v8_sigsegv_handler(int signum)
+{
+	g_v8_quit = 1;
+
+	v8_log_error("Caught SIGSEGV leaving.");
+	pthread_exit(NULL);
 }

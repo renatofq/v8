@@ -71,7 +71,7 @@ V8Config * v8_config_create_from_file(const char * filename)
 	  if (ret == 1)
 		{
 			v8_log_error("Configuration file ill formed at line %s", line);
-			bad_format = 1;
+			//bad_format = 1;
 			break;
 		}
 	  else if (ret != 2)
