@@ -294,7 +294,7 @@ static int v8_lua_table_at(lua_State * s)
 	long i = (long)lua_tonumber(s, 2);
 	long j = (long)lua_tonumber(s, 3);
 
-	const char * value = self->at(self->data, i, j);
+	const char * value = self->at(self->data, i-1, j-1);
 
 	lua_pushstring(s, value);
 
