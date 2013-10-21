@@ -160,7 +160,7 @@ const char * v8_config_str(const V8Config * config, const char * key,
 	val = v8_strmap_value(config->map, key);
 	if (val == NULL)
 	{
-		v8_log_info("Config: %s not found. Fallback to default %s", def);
+		v8_log_info("Config: %s not found. Fallback to default %s", key, def);
 		return def;
 	}
 	else
@@ -193,7 +193,7 @@ int v8_config_int(const V8Config * config, const char * key, const int def)
 	val = v8_strmap_value(config->map, key);
 	if (val == NULL)
 	{
-		v8_log_info("Config: %s not found. Fallback to default %d", def);
+		v8_log_info("Config: %s not found. Fallback to default %d", key, def);
 		return def;
 	}
 	else
