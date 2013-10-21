@@ -4,6 +4,8 @@
 
 #include <v8/v8.h>
 
+#include "atable.h"
+
 
 int is_admin(const V8Request * request);
 void basic_handler(const V8Request * request, V8Response * response);
@@ -28,9 +30,16 @@ void basic_handler(const V8Request * request, V8Response * response)
 void lua_handler(const V8Request * request, V8Response * response)
 {
 	V8View * view = v8_response_view(response);
+	static const char * people[] = {
+		"Jose da silva", "23", "m",
+		"Maria do Carmo", "46", "f",
+		"Matusalem", "998", "m",
+		"Diabo", "13.8e9", "x"};
+
 
 	v8_view_insert_string(view, "title", "V8");
 	v8_view_insert_string(view, "name", "V8!");
+	v8_view_insert_table(view, "people", v8_atable_create(people, 4, 3));
 
 	v8_response_ok(response, "./public/hello.html");
 }

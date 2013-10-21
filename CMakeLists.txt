@@ -12,7 +12,6 @@ set(SRC ${SRC_DIR}/log.c
         ${SRC_DIR}/list.c
         ${SRC_DIR}/map.c
         ${SRC_DIR}/strmap.c
-        ${SRC_DIR}/atable.c
         ${SRC_DIR}/cookie.c
         ${SRC_DIR}/request.c
         ${SRC_DIR}/response.c

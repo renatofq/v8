@@ -1,4 +1,4 @@
-#include <v8/atable.h>
+#include "atable.h"
 
 #include <stdlib.h>
 
