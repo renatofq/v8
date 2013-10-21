@@ -84,6 +84,14 @@ V8Config * v8_config_create_from_file(const char * filename)
 			str = NULL;
 		}
 
+	  str = strchr(line, ';');
+	  if (str != NULL)
+	  {
+		  *str = '\0';
+		  str = NULL;
+	  }
+
+	  /* scan config */
 	  ret = sscanf(line, " %255s = %255s ", key, val);
 	  if (ret == 1)
 		{

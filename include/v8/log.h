@@ -36,6 +36,15 @@ V8LogLevel v8_log_level(void);
 void v8_log_level_set(V8LogLevel level);
 
 /*!
+  \brief Define o nivel de log baseado em uma string
+
+  \param level String indica o nivel de log. Valores aceitos:
+  {"debug", "info", "warn", "warning", "error", "none"} indiferente
+  a capitalizacao.
+*/
+void v8_log_level_str_set(const char * level);
+
+/*!
   \brief Imprime log.
 
   \param level Nivel de log.

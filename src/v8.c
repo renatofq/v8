@@ -34,18 +34,23 @@ static void * v8_handle(void * p);
 static void v8_sigsegv_handler(int signum);
 
 static volatile sig_atomic_t g_v8_quit = 0;
+static V8 * g_v8 = NULL;
+
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
-
-	v8_log_level_set(V8_LOG_DEBUG);
 
 	if (v8 != NULL)
 	{
 		v8->actions = actions;
 		v8->config = v8_config_create_from_file(configFile);
 		v8_init_socket(v8);
+
+		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
+		                                   "warning"));
+
+		g_v8 = v8;
 	}
 
 	return v8;
@@ -66,7 +71,7 @@ int v8_start(const V8 * v8)
 
 	sigaction(SIGSEGV, &act, NULL);
 
-	backlog = v8_config_int(v8->config, "v8.socket_backlog", 1);
+	backlog = v8_config_int(v8->config, "v8.backlog", 1);
 	ret = listen(v8->sock, backlog);
 	if (ret == -1)
 	{
@@ -94,6 +99,17 @@ int v8_start(const V8 * v8)
 	pthread_attr_destroy(&attr);
 
 	return 0;
+}
+
+
+const char * v8_global_config_str(const char * name, const char * def)
+{
+	return v8_config_str(g_v8->config, name, def);
+}
+
+int v8_global_config_int(const char * name, int def)
+{
+	return v8_config_int(g_v8->config, name, def);
 }
 
 static void * v8_handle(void * p)
@@ -212,5 +228,6 @@ static void v8_sigsegv_handler(int signum)
 	g_v8_quit = 1;
 
 	v8_log_error("Caught SIGSEGV leaving.");
+	/* FIXME: pthread_exit is not async-signal-safe */
 	pthread_exit(NULL);
 }
