@@ -9,6 +9,8 @@
 #ifndef V8_COOKIE_H
 #define V8_COOKIE_H
 
+#include <time.h>
+
 /*!
   \struct V8Cookie
 
@@ -41,7 +43,7 @@ void v8_cookie_destroy(V8Cookie * cookie);
 
   \return Numero de bytes escritos em buffer.
 */
-int v8_cookie_print(const V8Cookie * cookie, char * buffer, int size);
+int v8_cookie_print(const V8Cookie * cookie, char * buffer, long size);
 
 /*!
   \brief Retorna o nome do cookie
@@ -98,6 +100,22 @@ const char * v8_cookie_path(const V8Cookie * cookie);
   \param value *Path* do cookie.
 */
 void v8_cookie_set_path(V8Cookie * cookie, const char * value);
+
+/*!
+  \brief Retorna a validade do cookie.
+
+  \param cookie Cookie.
+  \return Data de validade do cookie.
+ */
+time_t v8_cookie_expires(const V8Cookie * cookie);
+
+/*!
+  \brief Define a validade do cookie.
+
+  \param cookie Cookie.
+  \param expires Data de validade do cookie.
+*/
+void v8_cookie_set_expires(V8Cookie * cookie, time_t expires);
 
 /*!
   \brief Testa se *Secure* esta definido
