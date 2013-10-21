@@ -42,9 +42,9 @@ V8Config * v8_config_create_from_file(const char * filename)
 
 	char * str = NULL;
 	FILE * file = NULL;
-	int bad_format = 0;
 	V8Config * config = v8_config_create();
 	int ret = 0;
+	int len = 0;
 
 	if (config == NULL)
   {
@@ -65,26 +65,38 @@ V8Config * v8_config_create_from_file(const char * filename)
 			continue;
 		}
 
-	  /* Drop comments and line breaks */
-	  strtok(line, "\n#;");
-	  ret = sscanf(line, "%255[a-zA-Z.] = %255[a-zA-Z0-9.]", key, val);
+	  len = strlen(line);
+	  if (len <= 1)
+	  {
+		  /* line is empty */
+		  continue;
+		}
+
+	  /* drop line break */
+	  --len;
+	  line[len] = '\0';
+
+	  /* Drop comments */
+	  str = strchr(line, '#');
+	  if (str != NULL)
+		{
+			*str = '\0';
+			str = NULL;
+		}
+
+	  ret = sscanf(line, " %255s = %255s ", key, val);
 	  if (ret == 1)
 		{
-			v8_log_error("Configuration file ill formed at line %s", line);
-			//bad_format = 1;
+			v8_log_warn("Configuration file ill formed at line %s", line);
 			break;
 		}
 	  else if (ret != 2)
 		{
+			/* line possibly has only blanks */
 			continue;
 		}
 
 	  v8_strmap_insert(config->map, key, val);
-  }
-
-	if (bad_format != 0)
-  {
-	  goto error_cleanup;
   }
 
 	if (ferror(file) != 0)
@@ -140,6 +152,7 @@ const char * v8_config_str(const V8Config * config, const char * key,
 	val = v8_strmap_value(config->map, key);
 	if (val == NULL)
 	{
+		v8_log_info("Config: %s not found. Fallback to default %s", def);
 		return def;
 	}
 	else
@@ -172,6 +185,7 @@ int v8_config_int(const V8Config * config, const char * key, const int def)
 	val = v8_strmap_value(config->map, key);
 	if (val == NULL)
 	{
+		v8_log_info("Config: %s not found. Fallback to default %d", def);
 		return def;
 	}
 	else
