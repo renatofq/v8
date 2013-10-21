@@ -3,6 +3,6 @@
 
 #include <v8/table.h>
 
-V8Table * v8_atable_init(char ** array, int height, int width);
+V8Table * v8_atable_create(const char ** array, long height, long width);
 
 #endif

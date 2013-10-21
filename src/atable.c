@@ -4,7 +4,7 @@
 
 typedef struct v8_atable_t
 {
-	char  ** array;
+	const char  ** array;
 	long h;
 	long w;
 } V8ATable;
@@ -15,7 +15,7 @@ static long v8_atable_ncols(const void * data);
 static void v8_atable_destroy(void * data);
 
 
-V8Table * v8_atable_create(char ** array, long height, long width)
+V8Table * v8_atable_create(const char ** array, long height, long width)
 {
 	V8Table * table = (V8Table *) malloc(sizeof(V8Table));
 	V8ATable * atable = (V8ATable *) malloc(sizeof(V8ATable));
