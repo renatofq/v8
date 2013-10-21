@@ -41,7 +41,7 @@ void lua_handler(const V8Request * request, V8Response * response)
 	v8_view_insert_string(view, "name", "V8!");
 	v8_view_insert_table(view, "people", v8_atable_create(people, 4, 3));
 
-	v8_response_ok(response, "./public/hello.html");
+	v8_response_ok(response, "hello.html");
 }
 
 void broken_handler(const V8Request * request, V8Response * response)
@@ -73,14 +73,18 @@ int is_admin(const V8Request * request)
 int main(int argc, char * argv[])
 {
 	V8 * v8 = NULL;
+	const char *  config = NULL;
 
 	if (argc != 2)
   {
-	  printf("E necessario o nome do arquivo de configuracao, e somente\n");
-	  return -1;
+	  config = "v8.conf";
   }
+	else
+	{
+		config = argv[1];
+	}
 
-	v8 = v8_init(argv[1], actions);
+	v8 = v8_init(config, actions);
 
 	v8_start(v8);
 
