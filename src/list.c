@@ -40,7 +40,7 @@ V8List * v8_list_create(V8ListAllocator allocator, V8ListDestructor destructor)
 
 void v8_list_destroy(V8List * list)
 {
-	if (list != NULL)
+	if (list == NULL)
 	{
 		return;
 	}
