@@ -1,4 +1,5 @@
 #include <v8/view.h>
+#include <v8/v8.h>
 #include <v8/lua.h>
 #include <v8/log.h>
 
@@ -49,6 +50,7 @@ void v8_view_render(V8View * view, const char * file)
 {
 	struct stat file_stat;
 	const char * file_name = NULL;
+	const char * tmp_dir  = NULL;
 	char lua_file[V8_VIEW_FILE_MAX_PATH];
 
 	if (view == NULL)
@@ -73,7 +75,9 @@ void v8_view_render(V8View * view, const char * file)
 		++file_name;
 	}
 
-	snprintf(lua_file, V8_VIEW_FILE_MAX_PATH, "/tmp/v8/%li_%s.lua",
+	/* FIXME: If the directory tree doesnt exist, create it*/
+	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
+	snprintf(lua_file, V8_VIEW_FILE_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
 	        file_stat.st_mtime, file_name);
 
 	if (access(lua_file, F_OK | R_OK) != 0)
