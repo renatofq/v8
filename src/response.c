@@ -170,7 +170,7 @@ void v8_response_add_cookie(V8Response * response, const V8Cookie * cookie)
 {
 	if (response != NULL)
 	{
-		v8_list_insert(response->cookies, cookie);
+		v8_list_push(response->cookies, cookie);
 	}
 }
 

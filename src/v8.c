@@ -25,24 +25,28 @@ struct v8_t
 typedef struct v8_thred_data_t
 {
 	int sock;
-	const V8 * v8;
+	V8List * mem;
 } V8ThreadData;
 
 
 static int v8_init_socket(V8 * v8);
+static V8ThreadData * v8_thread_data_create(int sock);
+static void v8_thread_data_destroy(void * data);
 static void * v8_handle(void * p);
 static void v8_sigsegv_handler(int signum);
 static void v8_sigterm_handler(int signum);
 
 static volatile sig_atomic_t g_v8_quit = 0;
-static V8 * g_v8 = NULL;
+static const V8 * g_v8 = NULL;
+static pthread_key_t g_v8_data_key;
 
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
+	int rc = pthread_key_create(&g_v8_data_key, v8_thread_data_destroy);
 
-	if (v8 != NULL)
+	if (v8 != NULL && rc == 0)
 	{
 		v8->actions = actions;
 		v8->config = v8_config_create_from_file(configFile);
@@ -52,6 +56,7 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 		                                   "warning"));
 
 		g_v8 = v8;
+
 	}
 
 	return v8;
@@ -97,11 +102,8 @@ int v8_start(const V8 * v8)
 
 		if (newsock != -1)
 		{
-			V8ThreadData * data =
-				(V8ThreadData *)malloc(sizeof(V8ThreadData));
-			data->sock = newsock;
-			data->v8 = v8;
-			pthread_create(&thread, &attr, v8_handle, data);
+			V8ThreadData * thread_data = v8_thread_data_create(newsock);
+			pthread_create(&thread, &attr, v8_handle, thread_data);
 		}
 	}
 
@@ -111,6 +113,55 @@ int v8_start(const V8 * v8)
 
 	return 0;
 }
+
+
+void * v8_malloc(size_t size)
+{
+	void * ptr = malloc(size);
+	V8ThreadData * thread_data = (V8ThreadData *)
+		pthread_getspecific(g_v8_data_key);
+
+
+	if (ptr != NULL)
+	{
+		v8_log_debug("Thread memory allocated %p", ptr);
+		v8_list_push(thread_data->mem, ptr);
+	}
+
+	return ptr;
+}
+
+
+static V8ThreadData * v8_thread_data_create(int sock)
+{
+	V8ThreadData * thread_data = (V8ThreadData *) malloc(sizeof(V8ThreadData));
+
+	if (thread_data == NULL)
+	{
+		return NULL;
+	}
+
+	thread_data->sock = sock;
+	thread_data->mem = v8_list_create(NULL, free);
+
+	return thread_data;
+}
+
+static void v8_thread_data_destroy(void * data)
+{
+	V8ThreadData * thread_data = (V8ThreadData *)data;
+
+	thread_data->sock = -1;
+	if (thread_data->mem != NULL )
+	{
+		v8_list_destroy(thread_data->mem);
+		thread_data = NULL;
+	}
+
+	pthread_setspecific(g_v8_data_key, NULL);
+	free(thread_data);
+}
+
 
 
 const char * v8_global_config_str(const char * name, const char * def)
@@ -126,14 +177,15 @@ int v8_global_config_int(const char * name, int def)
 static void * v8_handle(void * p)
 {
 	V8ThreadData * data = (V8ThreadData *)p;
-
 	int sock = data->sock;
-	const V8 * v8 = data->v8;
+	const V8 * v8 = g_v8;
 	const V8Action * actions = v8->actions;
 	V8Request * request = v8_request_create();
 	V8Response * response = v8_response_create(sock);
 	const char * route;
 	int i = 0;
+
+	pthread_setspecific(g_v8_data_key, data);
 
 	v8_scgi_request_read(sock, request);
 	route = v8_request_route(request);
@@ -164,8 +216,6 @@ static void * v8_handle(void * p)
 	v8_response_destroy(response);
 	v8_request_destroy(request);
 	close(sock);
-	free(data);
-	data = NULL;
 
 	return NULL;
 }

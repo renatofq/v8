@@ -81,13 +81,20 @@ V8List * v8_list_create(V8ListAllocator allocator, V8ListDestructor destructor);
 void v8_list_destroy(V8List * list);
 
 /*!
-  \brief  Insere valor na lista
+  \brief  Insere um valor no inicion da lista
   \param list Lista.
   \param data valor a ser inserido.
   \return 0 em caso de erro, 1 do contrario.
   \see v8_list_create
 */
-int v8_list_insert(V8List * list, const void  * data);
+int v8_list_push(V8List * list, const void  * data);
+
+/*!
+  \brief Remove um elemento do inicio da lista e retorna seu valor.
+  \param list Lista.
+  \return Valor do elemento removido.
+*/
+const void * v8_list_pop(V8List * list);
 
 /*!
   \brief Remove membro da lista.

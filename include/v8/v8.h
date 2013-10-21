@@ -30,6 +30,8 @@ V8 * v8_init(const char * configFile, const V8Action * actions);
 
 int v8_start(const V8 * v8);
 
+void * v8_malloc(size_t size);
+
 const char * v8_global_config_str(const char * name, const char * def);
 int v8_global_config_int(const char * name, int def);
 

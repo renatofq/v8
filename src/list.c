@@ -53,7 +53,7 @@ void v8_list_destroy(V8List * list)
 	list = NULL;
 }
 
-int v8_list_insert(V8List * list, const void  * data)
+int v8_list_push(V8List * list, const void  * data)
 {
 	V8ListNode * node = NULL;
 
@@ -72,6 +72,25 @@ int v8_list_insert(V8List * list, const void  * data)
 	list->head = node;
 
 	return 1;
+}
+
+const void * v8_list_pop(V8List * list)
+{
+	V8ListNode * node = NULL;
+	const void * value = NULL;
+
+	if (list == NULL || list->head == NULL)
+	{
+		return NULL;
+	}
+
+	node = list->head;
+	list->head = node->next;
+	value = node->data;
+
+	free(node);
+
+	return value;
 }
 
 void v8_list_remove(V8List * list, V8ListIterator * it)
