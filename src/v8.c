@@ -32,6 +32,7 @@ typedef struct v8_thred_data_t
 static int v8_init_socket(V8 * v8);
 static void * v8_handle(void * p);
 static void v8_sigsegv_handler(int signum);
+static void v8_sigterm_handler(int signum);
 
 static volatile sig_atomic_t g_v8_quit = 0;
 static V8 * g_v8 = NULL;
@@ -66,10 +67,18 @@ int v8_start(const V8 * v8)
 	pthread_attr_t attr;
 	struct sigaction act;
 
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = v8_sigsegv_handler;
+	v8_log_info("V8 Starting");
 
+	memset(&act, 0, sizeof(act));
+
+	/* registering signal handlers */
+	act.sa_handler = v8_sigsegv_handler;
 	sigaction(SIGSEGV, &act, NULL);
+
+	act.sa_handler = v8_sigterm_handler;
+	sigaction(SIGTERM, &act, NULL);
+	sigaction(SIGQUIT, &act, NULL);
+	sigaction(SIGINT, &act, NULL);
 
 	backlog = v8_config_int(v8->config, "v8.backlog", 1);
 	ret = listen(v8->sock, backlog);
@@ -97,6 +106,8 @@ int v8_start(const V8 * v8)
 	}
 
 	pthread_attr_destroy(&attr);
+
+	v8_log_info("V8  shutting down");
 
 	return 0;
 }
@@ -225,9 +236,17 @@ static int v8_init_socket(V8 * v8)
 
 static void v8_sigsegv_handler(int signum)
 {
+	v8_log_error("Caught SIGSEGV, leaving.");
+
 	g_v8_quit = 1;
 
-	v8_log_error("Caught SIGSEGV leaving.");
 	/* FIXME: pthread_exit is not async-signal-safe */
 	pthread_exit(NULL);
+}
+
+static void v8_sigterm_handler(int signum)
+{
+	v8_log_info("Caught %d, leaving.", signum);
+
+	g_v8_quit = 1;
 }
