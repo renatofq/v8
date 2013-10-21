@@ -44,6 +44,7 @@ void v8_buffer_destroy(V8Buffer * buffer)
 
 	buffer->size = 0;
 	buffer->pos = 0;
+	free(buffer);
 }
 
 int v8_buffer_size(const V8Buffer * buffer)

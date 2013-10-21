@@ -233,7 +233,7 @@ static void v8_scgi_fill_route(V8Request * request)
 		return;
 	}
 
-	request->route = (char *)malloc(strlen(route));
+	request->route = (char *)malloc(strlen(route) + 1);
 	if (request->route == NULL)
   {
 	  v8_log_error("Error while trying to get path_info");
