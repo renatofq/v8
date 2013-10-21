@@ -50,7 +50,6 @@ void v8_view_render(V8View * view, const char * file)
 	struct stat file_stat;
 	const char * file_name = NULL;
 	char lua_file[V8_VIEW_FILE_MAX_PATH];
-	//	int ret = 0;
 
 	if (view == NULL)
 	{
@@ -77,7 +76,6 @@ void v8_view_render(V8View * view, const char * file)
 	snprintf(lua_file, V8_VIEW_FILE_MAX_PATH, "/tmp/v8/%li_%s.lua",
 	        file_stat.st_mtime, file_name);
 
-
 	if (access(lua_file, F_OK | R_OK) != 0)
 	{
 		if (v8_lua_gen_file(file, lua_file) != 0)
@@ -92,10 +90,18 @@ void v8_view_render(V8View * view, const char * file)
 
 void v8_view_insert_number(V8View * view, const char * name, double value)
 {
+	if (view != NULL)
+	{
+		v8_lua_push_number(view->lua, name, value);
+	}
 }
 
 void v8_view_insert_boolean(V8View * view, const char * name, int value)
 {
+	if (view != NULL)
+	{
+		v8_lua_push_boolean(view->lua, name, value);
+	}
 }
 
 void v8_view_insert_string(V8View * view, const char * name, const char * value)

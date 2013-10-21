@@ -218,6 +218,19 @@ int v8_lua_eval_file(V8Lua * lua, const char * filename)
   return ret;
 }
 
+void v8_lua_push_number(V8Lua * lua, const char * name, double value)
+{
+	lua_pushnumber(lua, value);
+	lua_setglobal(lua, name);
+}
+
+void v8_lua_push_boolean(V8Lua * lua, const char * name, int value)
+{
+	lua_pushboolean(lua, value);
+	lua_setglobal(lua, name);
+}
+
+
 void v8_lua_push_string(V8Lua * lua, const char * name, const char * value)
 {
 	lua_pushstring(lua, value);
