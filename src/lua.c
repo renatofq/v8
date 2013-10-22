@@ -94,11 +94,6 @@ void v8_lua_destroy(V8Lua * lua)
 	lua_close(lua);
 }
 
-/*
-   This function was originally based on lsplib::lsp_reader from luasp project
-   see http://luasp.org
-*/
-
 int v8_lua_eval_file(V8Lua * lua, const char * filename)
 {
 	int ret = 0;
@@ -201,6 +196,10 @@ static int v8_lua_yield(lua_State * s)
 	return 0;
 }
 
+/*
+  This function was originally based on lsplib::lsp_reader from luasp project
+  see http://luasp.org
+*/
 static int v8_lua_script_from_template(const char * file, char * lua_file)
 {
 	struct stat file_stat;
