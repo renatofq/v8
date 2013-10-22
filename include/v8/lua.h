@@ -12,8 +12,6 @@ V8Lua * v8_lua_create(V8Buffer * buffer);
 
 void v8_lua_destroy(V8Lua * lua);
 
-int v8_lua_gen_file(const char * ifile, const char * ofile);
-
 int v8_lua_eval_file(V8Lua * lua, const char * filename);
 
 void v8_lua_push_number(V8Lua * lua, const char * name, double value);

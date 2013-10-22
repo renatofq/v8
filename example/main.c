@@ -11,10 +11,12 @@ int is_admin(const V8Request * request);
 void basic_handler(const V8Request * request, V8Response * response);
 void lua_handler(const V8Request * request, V8Response * response);
 void admin_handler(const V8Request * request, V8Response * response);
+void broken_handler(const V8Request * request, V8Response * response);
 
 static V8Action actions[] = {
 	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/admin", admin_handler, NULL},
 	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/lua", lua_handler, NULL},
+	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/break", broken_handler, NULL},
 	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", basic_handler, NULL},
 	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL, NULL}
 };

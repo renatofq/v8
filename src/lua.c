@@ -1,12 +1,22 @@
 #include <v8/lua.h>
+#include <v8/v8.h>
 #include <v8/log.h>
 #include <v8/table.h>
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>
+#include <string.h>
 #include <ctype.h>
 
 #include <lualib.h>
 #include <lauxlib.h>
+
+#define V8_LUA_MAX_PATH (1024)
+
 
 typedef enum v8_parser_state_t
 {
@@ -24,6 +34,10 @@ typedef enum v8_parser_state_t
 
 
 static int v8_lua_print(lua_State * s);
+static int v8_lua_include(lua_State * s);
+
+static int v8_lua_script_from_template(const char * file, char * lua_file);
+static int v8_lua_gen_file(const char * ifile, const char * ofile);
 
 static V8Table * v8_lua_table_self(lua_State * s);
 static int v8_lua_table_destroy(lua_State *s);
@@ -58,6 +72,9 @@ V8Lua * v8_lua_create(V8Buffer * buffer)
 	lua_pushcclosure(L, v8_lua_print, 1);
 	lua_setglobal(L, "print");
 
+	lua_pushcclosure(L, v8_lua_include, 0);
+	lua_setglobal(L, "include");
+
 	return L;
 }
 
@@ -67,10 +84,140 @@ void v8_lua_destroy(V8Lua * lua)
 }
 
 /*
-   This function was based on lsplib::lsp_reader from luasp project
+   This function was originally based on lsplib::lsp_reader from luasp project
    see http://luasp.org
 */
-int v8_lua_gen_file(const char * ifile, const char * ofile)
+
+int v8_lua_eval_file(V8Lua * lua, const char * filename)
+{
+	int ret = 0;
+	char lua_file[V8_LUA_MAX_PATH];
+
+	ret = v8_lua_script_from_template(filename, lua_file);
+	if (ret != 0)
+	{
+		v8_log_error("Failed to generate script");
+		return ret;
+	}
+
+	ret = luaL_loadfile(lua, lua_file);
+	if (ret != 0)
+	{
+		v8_log_error("Failed to load script file %s -> %s", filename,
+		             lua_tostring(lua, -1));
+		return ret;
+	}
+
+	ret = lua_pcall(lua, 0, 0, 0);
+	if (ret != 0)
+	{
+		v8_log_error("Failed to exec script %s", lua_tostring(lua, -1));
+		return ret;
+	}
+
+  return ret;
+}
+
+void v8_lua_push_number(V8Lua * lua, const char * name, double value)
+{
+	lua_pushnumber(lua, value);
+	lua_setglobal(lua, name);
+}
+
+void v8_lua_push_boolean(V8Lua * lua, const char * name, int value)
+{
+	lua_pushboolean(lua, value);
+	lua_setglobal(lua, name);
+}
+
+
+void v8_lua_push_string(V8Lua * lua, const char * name, const char * value)
+{
+	lua_pushstring(lua, value);
+	lua_setglobal(lua, name);
+}
+
+void v8_lua_push_table(V8Lua * lua, const char * name, V8Table * table)
+{
+	V8Table ** user_data = (V8Table **)lua_newuserdata(lua, sizeof (V8Table *));
+
+	*user_data = table;
+	luaL_getmetatable(lua, "V8.table");
+	lua_setmetatable(lua, -2);
+
+	lua_setglobal(lua, name);
+}
+
+static int v8_lua_print(lua_State * s)
+{
+	V8Buffer * buffer = (V8Buffer *) lua_touserdata(s, lua_upvalueindex(1));
+
+	const char * str = lua_tostring(s, 1);
+
+	v8_buffer_append(buffer, str);
+
+	return 0;
+}
+
+static int v8_lua_include(lua_State * s)
+{
+	const char * filename = lua_tostring(s, 1);
+
+	v8_lua_eval_file(s, filename);
+
+	return 0;
+}
+
+
+static int v8_lua_script_from_template(const char * file, char * lua_file)
+{
+	struct stat file_stat;
+	const char * tmp_dir  = NULL;
+	char templ_file[V8_LUA_MAX_PATH];
+
+	if (file == NULL || lua_file == NULL)
+	{
+		return -1;
+	}
+
+	/* FIXME: These directory rules should be responsability of V8View */
+	snprintf(templ_file, V8_LUA_MAX_PATH, "%s/%s",
+	         v8_global_config_str("v8.view.dir", "."), file);
+
+	if (access(templ_file, R_OK) != 0 || stat(templ_file,  &file_stat) != 0)
+	{
+		v8_log_error("Failed to access file %s", templ_file);
+		goto error_cleanup;
+	}
+
+	/* FIXME: If the directory doesnt exist, create it */
+	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
+	snprintf(lua_file, V8_LUA_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
+	         file_stat.st_mtime, file);
+
+	if (access(lua_file, F_OK | R_OK) != 0)
+	{
+		if (v8_lua_gen_file(templ_file, lua_file) != 0)
+		{
+			v8_log_error("Failed to generate script file %s", lua_file);
+			goto error_cleanup;
+		}
+	}
+	else
+	{
+		v8_log_error("Failed to access script file %s", lua_file);
+		goto error_cleanup;
+	}
+
+	return 0;
+
+ error_cleanup:
+	sprintf(lua_file, "");
+	return -1;
+}
+
+
+static int v8_lua_gen_file(const char * ifile, const char * ofile)
 {
 	FILE * inf = fopen(ifile, "r");
 	/* FIXME: Create the directory tree */
@@ -212,70 +359,6 @@ int v8_lua_gen_file(const char * ifile, const char * ofile)
 	return 0;
 }
 
-int v8_lua_eval_file(V8Lua * lua, const char * filename)
-{
-	int ret = 0;
-
-	ret = luaL_loadfile(lua, filename);
-
-	if (ret != 0)
-	{
-		v8_log_error("Failed to load script file %s -> %s", filename,
-		             lua_tostring(lua, -1));
-		return ret;
-	}
-
-	ret = lua_pcall(lua, 0, 0, 0);
-	if (ret != 0)
-	{
-		v8_log_error("Failed to exec script %s", lua_tostring(lua, -1));
-		return ret;
-	}
-
-  return ret;
-}
-
-void v8_lua_push_number(V8Lua * lua, const char * name, double value)
-{
-	lua_pushnumber(lua, value);
-	lua_setglobal(lua, name);
-}
-
-void v8_lua_push_boolean(V8Lua * lua, const char * name, int value)
-{
-	lua_pushboolean(lua, value);
-	lua_setglobal(lua, name);
-}
-
-
-void v8_lua_push_string(V8Lua * lua, const char * name, const char * value)
-{
-	lua_pushstring(lua, value);
-	lua_setglobal(lua, name);
-}
-
-void v8_lua_push_table(V8Lua * lua, const char * name, V8Table * table)
-{
-	V8Table ** user_data = (V8Table **)lua_newuserdata(lua, sizeof (V8Table *));
-
-	*user_data = table;
-	luaL_getmetatable(lua, "V8.table");
-	lua_setmetatable(lua, -2);
-
-	lua_setglobal(lua, name);
-}
-
-static int v8_lua_print(lua_State * s)
-{
-	V8Buffer * buffer = (V8Buffer *) lua_touserdata(s, lua_upvalueindex(1));
-
-	const char * str = lua_tostring(s, 1);
-
-	v8_buffer_append(buffer, str);
-
-	return 0;
-}
-
 
 static V8Table * v8_lua_table_self(lua_State * s)
 {
@@ -335,3 +418,5 @@ static int v8_lua_table_ncols(lua_State * s)
 
 	return 1;
 }
+
+#undef V8_LUA_MAX_PATH

@@ -1,17 +1,9 @@
 #include <v8/view.h>
-#include <v8/v8.h>
 #include <v8/lua.h>
 #include <v8/log.h>
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <time.h>
-#include <string.h>
 
-#define V8_VIEW_FILE_MAX_PATH (1024)
 
 struct v8_view_t
 {
@@ -48,39 +40,10 @@ void v8_view_destroy(V8View * view)
 
 void v8_view_render(V8View * view, const char * file)
 {
-	struct stat file_stat;
-	const char * tmp_dir  = NULL;
-	char lua_file[V8_VIEW_FILE_MAX_PATH];
-	char template_file[V8_VIEW_FILE_MAX_PATH];
-
-	if (view == NULL)
+	if (view != NULL)
 	{
-		return;
+		v8_lua_eval_file(view->lua, file);
 	}
-
-	snprintf(template_file, V8_VIEW_FILE_MAX_PATH, "%s/%s",
-	         v8_global_config_str("v8.view.dir", "."), file);
-
-	if (access(template_file, R_OK) != 0 || stat(template_file,  &file_stat) != 0)
-	{
-		v8_log_error("Failed to access file %s", file);
-		return;
-	}
-
-	/* FIXME: If the directory doesnt exist, create it */
-	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
-	snprintf(lua_file, V8_VIEW_FILE_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
-	         file_stat.st_mtime, file);
-
-	if (access(lua_file, F_OK | R_OK) != 0)
-	{
-		if (v8_lua_gen_file(file, lua_file) != 0)
-		{
-			v8_log_error("Failed to generate file %s", lua_file);
-		}
-	}
-
-	v8_lua_eval_file(view->lua, lua_file);
 }
 
 
@@ -115,5 +78,3 @@ void v8_view_insert_table(V8View * view, const char * name, V8Table * value)
 		v8_lua_push_table(view->lua, name, value);
 	}
 }
-
-#undef V8_VIEW_FILE_MAX_PATH
