@@ -32,13 +32,17 @@ typedef enum v8_parser_state_t
 	V8_STATE_STATEMENT_SIGN
 } V8ParserState;
 
-
+/* C implementation of lua callable functions */
 static int v8_lua_print(lua_State * s);
 static int v8_lua_include(lua_State * s);
+static int v8_lua_layout(lua_State * s);
+static int v8_lua_yield(lua_State * s);
 
+/* Fuctions that deal with template  translatio to pure lua code */
 static int v8_lua_script_from_template(const char * file, char * lua_file);
 static int v8_lua_gen_file(const char * ifile, const char * ofile);
 
+/* Implementation of V8Table type, usable from lua */
 static V8Table * v8_lua_table_self(lua_State * s);
 static int v8_lua_table_destroy(lua_State *s);
 static int v8_lua_table_tostring(lua_State * s);
@@ -74,6 +78,13 @@ V8Lua * v8_lua_create(V8Buffer * buffer)
 
 	lua_pushcclosure(L, v8_lua_include, 0);
 	lua_setglobal(L, "include");
+
+	lua_pushcclosure(L, v8_lua_layout, 0);
+	lua_setglobal(L, "layout");
+
+	lua_pushnil(L);
+	lua_pushcclosure(L, v8_lua_yield, 1);
+	lua_setglobal(L, "yield");
 
 	return L;
 }
@@ -168,6 +179,27 @@ static int v8_lua_include(lua_State * s)
 	return 0;
 }
 
+static int v8_lua_layout(lua_State * s)
+{
+	const char * filename = lua_tostring(s, 1);
+
+	lua_getglobal(s, "yield");
+	lua_pushvalue(s, 2);
+	lua_setupvalue(s, -2, 1);
+
+	v8_lua_eval_file(s, filename);
+
+	return 0;
+}
+
+static int v8_lua_yield(lua_State * s)
+{
+	lua_pushvalue(s, lua_upvalueindex(1));
+
+	lua_call(s, 0, 0);
+
+	return 0;
+}
 
 static int v8_lua_script_from_template(const char * file, char * lua_file)
 {
