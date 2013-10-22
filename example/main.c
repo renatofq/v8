@@ -15,12 +15,12 @@ void broken_handler(const V8Request * request, V8Response * response);
 void tryleak_handler(const V8Request * request, V8Response * response);
 
 static V8Action actions[] = {
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/admin", admin_handler, NULL},
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/lua", lua_handler, NULL},
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/break", broken_handler, NULL},
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/leak", tryleak_handler, NULL},
-	{V8_ACTION_SIMPLE, V8_METHOD_GET, "/", basic_handler, NULL},
-	{V8_ACTION_NONE, V8_METHOD_UNKNOWN, "", NULL, NULL}
+	{V8_METHOD_GET, "/admin", admin_handler, NULL},
+	{V8_METHOD_GET, "/lua", lua_handler, NULL},
+	{V8_METHOD_GET, "/break", broken_handler, NULL},
+	{V8_METHOD_GET, "/leak", tryleak_handler, NULL},
+	{V8_METHOD_GET, "/", basic_handler, NULL},
+	{V8_METHOD_UNKNOWN, "", NULL, NULL}
 };
 
 void basic_handler(const V8Request * request, V8Response * response)

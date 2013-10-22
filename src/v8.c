@@ -195,7 +195,7 @@ static void * v8_handle(void * p)
 	v8_log_debug("Request receiveid -> Method: %d Path: %s",
 	             v8_request_method(request), route);
 
-	for (i = 0; actions[i].type != V8_ACTION_NONE; ++i)
+	for (i = 0; actions[i].method != V8_METHOD_UNKNOWN; ++i)
 	{
 		if (actions[i].route != NULL
 		    && strcmp(route, actions[i].route) == 0)
@@ -208,7 +208,7 @@ static void * v8_handle(void * p)
 		}
 	}
 
-	if (actions[i].type == V8_ACTION_NONE)
+	if (actions[i].method == V8_METHOD_UNKNOWN)
 	{
 		v8_log_warn("Action not found %s", route);
 		v8_response_set_status(response, V8_STATUS_NOT_FOUND);
