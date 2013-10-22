@@ -3,21 +3,23 @@
 #include <v8/table.h>
 
 #include <stdlib.h>
+#include <ctype.h>
 
 #include <lualib.h>
 #include <lauxlib.h>
 
 typedef enum v8_parser_state_t
 {
-	st_echo_chars1,
-	st_echo_chars2,
-	st_echo_chars3,
-	st_echo_chars4,
-	st_stmt1,
-	st_stmt2,
-	st_stmt3,
-	st_stmt12,
-	st_stmt13
+	V8_STATE_DEFAULT,
+	V8_STATE_LITERAL,
+	V8_STATE_LITERAL_SIGN,
+	V8_STATE_LITERAL_BLANK,
+	V8_STATE_SIGN,
+	V8_STATE_LUA,
+	V8_STATE_EXPRESSION,
+	V8_STATE_EXPRESSION_SIGN,
+	V8_STATE_STATEMENT,
+	V8_STATE_STATEMENT_SIGN
 } V8ParserState;
 
 
@@ -64,129 +66,144 @@ void v8_lua_destroy(V8Lua * lua)
 	lua_close(lua);
 }
 
+/*
+   This function was based on lsplib::lsp_reader from luasp project
+   see http://luasp.org
+*/
 int v8_lua_gen_file(const char * ifile, const char * ofile)
 {
 	FILE * inf = fopen(ifile, "r");
+	/* FIXME: Create the directory tree */
 	FILE * outf = fopen(ofile, "w");
 	int ch;
-	V8ParserState state = st_echo_chars1;
+	V8ParserState state = V8_STATE_DEFAULT;
 
 	for (ch = fgetc(inf); ch != EOF; ch = fgetc(inf))
 	{
 		switch(state)
 		{
-		case st_echo_chars1:
+		case V8_STATE_DEFAULT:
 			if(ch == '<')
 			{
-				state = st_echo_chars4;
+				state = V8_STATE_SIGN;
 			}
-			else
+			else if (! isspace(ch))
 			{
 				fprintf(outf, "print([==[\n%c", ch);
-				state = st_echo_chars2;
+				state = V8_STATE_LITERAL;
 			}
 			break;
-		case st_echo_chars2:
+		case V8_STATE_LITERAL:
 			if(ch == '<')
 			{
-				state = st_echo_chars3;
+				state = V8_STATE_LITERAL_SIGN;
+			}
+			else if (isblank(ch))
+			{
+				fputc(' ', outf);
+				state = V8_STATE_LITERAL_BLANK;
 			}
 			else
 			{
 				fputc(ch, outf);
 			}
 			break;
-		case st_echo_chars3:
+		case V8_STATE_LITERAL_BLANK:
+			if (ch == '<')
+			{
+				state = V8_STATE_LITERAL_SIGN;
+			}
+			else if (! isblank(ch))
+			{
+				fputc(ch, outf);
+				state = V8_STATE_LITERAL;
+			}
+			break;
+		case V8_STATE_LITERAL_SIGN:
 			if(ch != '?')
 			{
 				fprintf(outf, "<%c", ch);
-				state = st_echo_chars2;
+				state = V8_STATE_LITERAL;
 			}
 			else
 			{
 				fprintf(outf, "\n]==])\n");
-				state = st_stmt1;
+				state = V8_STATE_LUA;
 			}
 			break;
-		case st_echo_chars4:
+		case V8_STATE_SIGN:
 			if(ch == '?')
 			{
-				state = st_stmt1;
+				state = V8_STATE_LUA;
 			}
 			else
 			{
 				fprintf(outf, "print([==[\n<%c", ch);
-				state = st_echo_chars2;
+				state = V8_STATE_LITERAL;
 			}
 			break;
-		case st_stmt1:
+		case V8_STATE_LUA:
 			if(ch == '=')
 			{
 				fprintf(outf, "print(");
-				state = st_stmt2;
+				state = V8_STATE_EXPRESSION;
 			}
 			else
 			{
 				fputc(ch, outf);
-				state = st_stmt12;
+				state = V8_STATE_STATEMENT;
 			}
 			break;
-		case st_stmt2:
+		case V8_STATE_EXPRESSION:
 			if(ch=='?')
 			{
-				state = st_stmt3;
+				state = V8_STATE_EXPRESSION_SIGN;
 			}
 			else
 			{
 				fputc(ch, outf);
 			}
 			break;
-		case st_stmt3:
+		case V8_STATE_EXPRESSION_SIGN:
 			if(ch == '>')
 			{
 				fprintf(outf, ")\n");
-				state = st_echo_chars1;
+				state = V8_STATE_DEFAULT;
 			}
 			else
 			{
 				fprintf(outf, "?%c", ch);
-				state = st_stmt2;
+				state = V8_STATE_EXPRESSION;
 			}
 			break;
-		case st_stmt12:
+		case V8_STATE_STATEMENT:
 			if(ch == '?')
 			{
-				state = st_stmt13;
+				state = V8_STATE_STATEMENT_SIGN;
 			}
 			else
 			{
 				fputc(ch, outf);
 			}
 			break;
-		case st_stmt13:
+		case V8_STATE_STATEMENT_SIGN:
 			if(ch == '>')
 			{
-				fputc(' ', outf);
-				state = st_echo_chars1;
+				fputc('\n', outf);
+				state = V8_STATE_DEFAULT;
 			}
 			else
 			{
 				fprintf(outf, "?%c", ch);
-				state = st_stmt12;
+				state = V8_STATE_STATEMENT;
 			}
 			break;
 		}
 	}
 
-	switch(state)
+	if (state == V8_STATE_LITERAL)
 	{
-	case st_echo_chars1:
-		break;
-	case st_echo_chars2:
 		fprintf(outf, "\n]==])");
-		break;
-	default:
-		break;
 	}
 
 

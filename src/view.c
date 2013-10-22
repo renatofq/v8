@@ -49,36 +49,28 @@ void v8_view_destroy(V8View * view)
 void v8_view_render(V8View * view, const char * file)
 {
 	struct stat file_stat;
-	const char * file_name = NULL;
 	const char * tmp_dir  = NULL;
 	char lua_file[V8_VIEW_FILE_MAX_PATH];
+	char template_file[V8_VIEW_FILE_MAX_PATH];
 
 	if (view == NULL)
 	{
 		return;
 	}
 
-	if (access(file, R_OK) != 0 || stat(file,  &file_stat) != 0)
+	snprintf(template_file, V8_VIEW_FILE_MAX_PATH, "%s/%s",
+	         v8_global_config_str("v8.view.dir", "."), file);
+
+	if (access(template_file, R_OK) != 0 || stat(template_file,  &file_stat) != 0)
 	{
 		v8_log_error("Failed to access file %s", file);
 		return;
 	}
 
-	/* Get the last portion of the file path */
-	file_name = strrchr(file, '/');
-	if (file_name == NULL)
-  {
-	  file_name = file;
-  }
-	else
-	{
-		++file_name;
-	}
-
-	/* FIXME: If the directory tree doesnt exist, create it*/
+	/* FIXME: If the directory doesnt exist, create it */
 	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
 	snprintf(lua_file, V8_VIEW_FILE_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
-	        file_stat.st_mtime, file_name);
+	         file_stat.st_mtime, file);
 
 	if (access(lua_file, F_OK | R_OK) != 0)
 	{
