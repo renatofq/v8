@@ -221,7 +221,6 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 		goto error_cleanup;
 	}
 
-	/* FIXME: If the directory doesnt exist, create it */
 	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
 	snprintf(lua_file, V8_LUA_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
 	         file_stat.st_mtime, file);
