@@ -184,20 +184,22 @@ static void * v8_handle(void * p)
 	const V8Action * actions = v8->actions;
 	V8Request * request = v8_request_create();
 	V8Response * response = v8_response_create(sock);
+	V8RequestMethod method = V8_METHOD_UNKNOWN;
 	const char * route;
 	int i = 0;
 
 	pthread_setspecific(g_v8_data_key, data);
 
 	v8_scgi_request_read(sock, request);
+	method = v8_request_method(request);
 	route = v8_request_route(request);
 
-	v8_log_debug("Request receiveid -> Method: %d Path: %s",
-	             v8_request_method(request), route);
+	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route);
 
 	for (i = 0; actions[i].method != V8_METHOD_UNKNOWN; ++i)
 	{
-		if (actions[i].route != NULL
+		if (method == actions[i].method
+		    && actions[i].route != NULL
 		    && strcmp(route, actions[i].route) == 0)
 		{
 			if (actions[i].filter == NULL || actions[i].filter(request))
