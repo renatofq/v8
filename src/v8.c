@@ -107,9 +107,11 @@ int v8_start(const V8 * v8)
 		}
 	}
 
+	/* FIXME: Wait running threads finish */
+
 	pthread_attr_destroy(&attr);
 
-	v8_log_info("V8  shutting down");
+	v8_log_info("V8 shutting down");
 
 	return 0;
 }
@@ -155,7 +157,7 @@ static void v8_thread_data_destroy(void * data)
 	if (thread_data->mem != NULL )
 	{
 		v8_list_destroy(thread_data->mem);
-		thread_data = NULL;
+		thread_data->mem = NULL;
 	}
 
 	pthread_setspecific(g_v8_data_key, NULL);
@@ -286,9 +288,7 @@ static int v8_init_socket(V8 * v8)
 
 static void v8_sigsegv_handler(int signum)
 {
-	v8_log_error("Caught SIGSEGV, leaving.");
-
-	g_v8_quit = 1;
+	g_v8_quit = signum;
 
 	/* FIXME: pthread_exit is not async-signal-safe */
 	pthread_exit(NULL);
@@ -296,7 +296,5 @@ static void v8_sigsegv_handler(int signum)
 
 static void v8_sigterm_handler(int signum)
 {
-	v8_log_info("Caught %d, leaving.", signum);
-
-	g_v8_quit = 1;
+	g_v8_quit = signum;
 }

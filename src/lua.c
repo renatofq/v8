@@ -234,11 +234,7 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 			goto error_cleanup;
 		}
 	}
-	else
-	{
-		v8_log_error("Failed to access script file %s", lua_file);
-		goto error_cleanup;
-	}
+
 
 	return 0;
 
