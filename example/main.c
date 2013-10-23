@@ -50,16 +50,9 @@ void lua_handler(const V8Request * request, V8Response * response)
 
 void broken_handler(const V8Request * request, V8Response * response)
 {
-	v8_response_set_status(response, V8_STATUS_OK);
-	v8_response_add_header(response, "Content-Type", "text/html");
-	v8_response_write(response, "<H1>Hello Turbo</h1>");
-
 	/* breaking the system */
-	if (rand() % 3 == 0)
-	{
-		void * p = NULL;
-		memset(p, 0, 100);
-	}
+	void * p = NULL;
+	memset(p, 0, 100);
 }
 
 void tryleak_handler(const V8Request * request, V8Response * response)
