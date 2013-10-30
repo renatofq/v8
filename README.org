@@ -1,0 +1,13 @@
+* V8 Server Library
+
+** Warning
+   This code is currently under heavy development and should not be used with
+   any intent but it's development itself.
+
+** What is
+   V8 server library is a library intented for building /scgi applications/ see
+   the example for it's usage.
+
+** License
+   V8 server library is licensed under GNU LGPL v3. See COPYING and
+   COPYING.LESSER for more information.
