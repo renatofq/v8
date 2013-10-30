@@ -238,7 +238,7 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 	return 0;
 
  error_cleanup:
-	sprintf(lua_file, "");
+	strcpy(lua_file, "");
 	return -1;
 }
 

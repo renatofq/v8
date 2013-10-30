@@ -25,7 +25,7 @@
 ** DONE Implementar layout e yield
 ** DONE Criar v8_malloc
 ** DONE Simplificar remover action type
-** TODO Portar para premake
+** DONE Portar para premake
 ** TODO Disponibilizar params para o lua
 ** TODO Rotas via regex
 ** TODO Implementar retorno de erro automático

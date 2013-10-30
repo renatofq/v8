@@ -1,5 +1,7 @@
-*.[oa]
+*.[oad]
 *.so
-.ninja_*
+*.make
+Makefile
 TAGS
 build/
+obj/
