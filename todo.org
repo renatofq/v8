@@ -1,0 +1,58 @@
+* Versão 1
+** DONE Criar módulo base.
+** DONE implementar scgi
+** DONE refatorar  scgi.
+** DONE completar leitura do request scgi.
+** DONE Implementar multithread
+** DONE Implementar comunicação via socket
+** DONE Implementar módulo request
+** DONE Implementar módulo response
+** DONE Refatorar map
+** DONE Implementar módulo buffer
+** DONE Implementar cookies
+** DONE Implementar List
+** DONE Implementar arquivo de configuração
+** DONE Corrigir roteamento de acoes
+** DONE Implementar filtro de acao
+** DONE Implementar acao default
+** DONE Tratar parametros post
+** DONE Implementar sistema de log
+** DONE Tratar SIGSEGV
+** DONE Implementar sistema de template
+* Versão 2
+** DONE Criação de caminho padrao para views
+** DONE Implementar include
+** DONE Implementar layout e yield
+** DONE Criar v8_malloc
+** DONE Simplificar remover action type
+** TODO Portar para premake
+** TODO Disponibilizar params para o lua
+** TODO Rotas via regex
+** TODO Implementar retorno de erro automático
+* Versão 3
+** TODO Usar pool de threads
+** TODO Compilação de script offline
+* Bugs
+** TODO Tratar sigsegv apropriadamente
+** TODO Esperar as threads que estão executando terminarem
+** TODO v8_lua_gen_file não cria arvore de diretorios.
+* Integração
+** TODO Documentar o código
+** TODO Rodar benchmarks
+** TODO Criar v8 na estrutura do SISREG
+** TODO Portar libacesso
+** TODO Portar libcadsus
+** TODO Implementar um aplicativo do SISREG no V8
+* Testes
+** TODO Implementar teste unitário de List
+** TODO Implementar teste unitário de Cookie
+** TODO Implementar teste unitário de Buffer
+** TODO Implementar teste unitário de Response
+** TODO Implementar teste unitário de Request
+** TODO Implementar teste unitário de Config
+* Possíveis Incrementos
+** TODO Implementar lista no script
+** TODO Mudar Map para árvore
+** TODO Adicionar mais logs nas situacoes de erro
+** TODO Possiblilitar handlers em lua
+** TODO Possibilitar disponibilisar várias variáveis para lua via varargs
