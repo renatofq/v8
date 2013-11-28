@@ -23,9 +23,9 @@
 #include <unistd.h>
 #include <ctype.h>
 
-static const unsigned long V8_SCGI_MAX_HEADER_SIZE = (10*1024);
-static const unsigned long V8_SCGI_MAX_REQUEST_SIZE = (10*1024);
-static const unsigned int V8_SCGI_MAX_NETSTRING_SIZE = (10);
+static const long V8_SCGI_MAX_HEADER_SIZE = (10*1024);
+static const long V8_SCGI_MAX_REQUEST_SIZE = (10*1024);
+static const int V8_SCGI_MAX_NETSTRING_SIZE = (10);
 
 static int v8_scgi_read_header(int fd, char * buffer);
 static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size);
@@ -84,11 +84,6 @@ int v8_scgi_request_read(int fd, V8Request * request)
 	return ret;
 }
 
-
-int v8_sgci_write(int fd)
-{
-	return 0;
-}
 
 static int v8_scgi_read_header(int fd, char * buffer)
 {

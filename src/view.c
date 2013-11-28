@@ -25,13 +25,19 @@ struct v8_view_t
 	V8Lua * lua;
 };
 
-V8View * v8_view_create(V8Buffer * buffer)
+
+V8View * v8_view_create(V8Buffer * buffer, const V8Map * params)
 {
 	V8View * view = (V8View *)malloc(sizeof(V8View));
 
 	if (view != NULL)
 	{
 		view->lua = v8_lua_create(buffer);
+
+		if (params != NULL)
+		{
+			v8_view_insert_map(view, "params", params);
+		}
 	}
 
 	return view;
@@ -86,10 +92,18 @@ void v8_view_insert_string(V8View * view, const char * name, const char * value)
 	}
 }
 
-void v8_view_insert_table(V8View * view, const char * name, V8Table * value)
+void v8_view_insert_datasource(V8View * view, const char * name, V8Table * value)
 {
 	if (view != NULL)
 	{
-		v8_lua_push_table(view->lua, name, value);
+		v8_lua_push_datasource(view->lua, name, value);
+	}
+}
+
+void v8_view_insert_map(V8View * view, const char * name, const V8Map * params)
+{
+	if (view != NULL)
+	{
+		v8_lua_push_table(view->lua, name, params);
 	}
 }

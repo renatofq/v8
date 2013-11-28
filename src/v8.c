@@ -17,6 +17,7 @@
 #include <v8/log.h>
 #include <v8/scgi.h>
 #include <v8/config.h>
+#include <v8/list.h>
 
 
 #include <stdlib.h>
@@ -198,7 +199,7 @@ static void * v8_handle(void * p)
 	const V8 * v8 = g_v8;
 	const V8Action * actions = v8->actions;
 	V8Request * request = v8_request_create();
-	V8Response * response = v8_response_create(sock);
+	V8Response * response = v8_response_create(request, sock);
 	V8RequestMethod method = V8_METHOD_UNKNOWN;
 	const char * route;
 	int i = 0;

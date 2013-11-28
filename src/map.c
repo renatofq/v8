@@ -147,7 +147,7 @@ const V8MapIterator * v8_map_iterator_next(const V8MapIterator * it)
 	}
 }
 
-const v8_key_t v8_map_iterator_key(const V8MapIterator * it)
+v8_key_t v8_map_iterator_key(const V8MapIterator * it)
 {
 	if (it == NULL)
 	{

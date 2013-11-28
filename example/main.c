@@ -43,7 +43,7 @@ void lua_handler(const V8Request * request, V8Response * response)
 
 	v8_view_insert_string(view, "title", "V8");
 	v8_view_insert_string(view, "name", "V8!");
-	v8_view_insert_table(view, "people", v8_atable_create(people, 4, 3));
+	v8_view_insert_datasource(view, "people", v8_atable_create(people, 4, 3));
 
 	v8_response_ok(response, "hello.html");
 }

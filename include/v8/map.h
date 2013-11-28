@@ -40,7 +40,7 @@ const V8MapIterator * v8_map_iterator(const V8Map * map);
 
 const V8MapIterator * v8_map_iterator_next(const V8MapIterator * it);
 
-const v8_key_t v8_map_iterator_key(const V8MapIterator * it);
+v8_key_t v8_map_iterator_key(const V8MapIterator * it);
 
 const void * v8_map_iterator_value(const V8MapIterator * it);
 
