@@ -16,9 +16,7 @@
 #ifndef V8_RESPONSE_H
 #define V8_RESPONSE_H
 
-#include <v8/buffer.h>
-#include <v8/strmap.h>
-#include <v8/list.h>
+#include <v8/request.h>
 #include <v8/view.h>
 #include <v8/cookie.h>
 
@@ -67,18 +65,9 @@ typedef enum
 	V8_STATUS_UNKNOWN = 0
 } V8ResponseStatus;
 
-typedef struct v8_response_t
-{
-	int fd;
-	V8ResponseStatus status;
-	V8Map * header;
-	V8List * cookies;
-	V8View * view;
-	V8Buffer * body;
-} V8Response;
+typedef struct v8_response_t V8Response;
 
-
-V8Response * v8_response_create(int fd);
+V8Response * v8_response_create(V8Request * request, int fd);
 
 void v8_response_destroy(V8Response * response);
 

@@ -14,8 +14,10 @@
  */
 
 #include <v8/response.h>
+
+#include <v8/buffer.h>
+#include <v8/strmap.h>
 #include <v8/list.h>
-#include <v8/lua.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,11 +26,21 @@
 
 #define V8_FORMATTER_SIZE (4*1024)
 
+typedef struct v8_response_t
+{
+	int fd;
+	V8ResponseStatus status;
+	V8Map * header;
+	V8List * cookies;
+	V8View * view;
+	V8Buffer * body;
+	const V8Request * request;
+} V8Response;
 
 
 static const char * v8_response_status_phrase(int status);
 
-V8Response * v8_response_create(int fd)
+V8Response * v8_response_create(V8Request * request, int fd)
 {
 	V8Response * response = (V8Response *)malloc(sizeof(V8Response));
 
@@ -39,8 +51,9 @@ V8Response * v8_response_create(int fd)
 		response->header = v8_strmap_create();
 		response->view = NULL; /* lazy allocation */
 		response->cookies =
-			v8_list_create(NULL, (V8ListDestructor)v8_cookie_destroy);
+			v8_list_create(NULL, (V8ListDestructor) v8_cookie_destroy);
 		response->body = v8_buffer_create();
+		response->request = request;
 	}
 
 	return response;
@@ -78,6 +91,8 @@ void v8_response_destroy(V8Response * response)
 		v8_buffer_destroy(response->body);
 		response->body = NULL;
 	}
+
+	response->request = NULL;
 
 	free(response);
 }
@@ -145,7 +160,7 @@ V8View * v8_response_view(V8Response * response)
 
 	if (response->view == NULL)
 	{
-		response->view = v8_view_create(response->body);
+		response->view = v8_view_create(response->body, response->request->params);
 	}
 
 	return response->view;

@@ -17,6 +17,7 @@
 #include <v8/v8.h>
 #include <v8/log.h>
 #include <v8/table.h>
+#include <v8/strmap.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,7 +86,7 @@ V8Lua * v8_lua_create(V8Buffer * buffer)
 	lua_pushvalue(L, -2);
 	lua_settable(L, -3);
 
-	luaL_register(L, NULL, v8_lua_table_methods);
+	luaL_setfuncs(L, v8_lua_table_methods, 0);
 
 	lua_pushlightuserdata(L, buffer);
 	lua_pushcclosure(L, v8_lua_print, 1);
@@ -158,13 +159,28 @@ void v8_lua_push_string(V8Lua * lua, const char * name, const char * value)
 	lua_setglobal(lua, name);
 }
 
-void v8_lua_push_table(V8Lua * lua, const char * name, V8Table * table)
+void v8_lua_push_datasource(V8Lua * lua, const char * name, V8Table * table)
 {
 	V8Table ** user_data = (V8Table **)lua_newuserdata(lua, sizeof (V8Table *));
 
 	*user_data = table;
 	luaL_getmetatable(lua, "V8.table");
 	lua_setmetatable(lua, -2);
+
+	lua_setglobal(lua, name);
+}
+
+void v8_lua_push_table(V8Lua * lua, const char * name, const V8Map * map)
+{
+	const V8MapIterator * it = v8_map_iterator(map);
+
+	lua_createtable(lua, 0, 0);
+
+	for (; it != NULL; it = v8_map_iterator_next(it))
+	{
+		lua_pushstring(lua, v8_strmap_iterator_value(it));
+		lua_setfield(lua, -2, v8_strmap_iterator_key(it));
+	}
 
 	lua_setglobal(lua, name);
 }

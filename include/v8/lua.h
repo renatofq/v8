@@ -18,6 +18,7 @@
 
 #include <v8/buffer.h>
 #include <v8/table.h>
+#include <v8/map.h>
 
 #include <lua.h>
 
@@ -35,6 +36,8 @@ void v8_lua_push_boolean(V8Lua * lua, const char * name, int value);
 
 void v8_lua_push_string(V8Lua * lua, const char * name, const char * value);
 
-void v8_lua_push_table(V8Lua * lua, const char * name, V8Table * table);
+void v8_lua_push_table(V8Lua * lua, const char * name, const V8Map * map);
+
+void v8_lua_push_datasource(V8Lua * lua, const char * name, V8Table * table);
 
 #endif

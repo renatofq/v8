@@ -147,7 +147,7 @@ const V8MapIterator * v8_map_iterator_next(const V8MapIterator * it)
 	}
 }
 
-const v8_key_t v8_map_iterator_key(const V8MapIterator * it)
+v8_key_t v8_map_iterator_key(const V8MapIterator * it)
 {
 	if (it == NULL)
 	{
@@ -232,9 +232,9 @@ static int v8_map_insert_r(const V8Map * map, V8MapNode * node,
 		}
 
 		if (map->allocator != NULL)
-    {
-	    node->value = map->allocator(value);
-    }
+	{
+		node->value = map->allocator(value);
+	}
 		else
 		{
 			node->value = value;
