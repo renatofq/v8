@@ -140,6 +140,7 @@ static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size)
 		value = buffer + i;
 		i += strlen(buffer + i) + 1;
 
+		v8_log_debug("SCGI HEADER: %s -> %s", key, value);
 		v8_strmap_insert(header, key, value);
 	}
 }
@@ -235,18 +236,18 @@ static void v8_scgi_fill_method(V8Request * request)
 
 static void v8_scgi_fill_route(V8Request * request)
 {
-	const char * route = v8_strmap_value(request->header, "path_info");
+	const char * route = v8_strmap_value(request->header, "request_uri");
 
 	if(route == NULL)
 	{
-		v8_log_error("path_info is not defined");
+		v8_log_error("request_uri is not defined");
 		return;
 	}
 
 	request->route = (char *)malloc(strlen(route) + 1);
 	if (request->route == NULL)
   {
-	  v8_log_error("Error while trying to get path_info");
+	  v8_log_error("Error while trying to set route");
 	  return;
   }
 

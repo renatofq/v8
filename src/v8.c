@@ -33,6 +33,7 @@
 struct v8_t
 {
 	int sock;
+	int base_size;
 	V8Config * config;
 	const V8Action * actions;
 };
@@ -70,6 +71,7 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 
 		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
 		                                   "warning"));
+		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
 
 		g_v8 = v8;
 
@@ -210,13 +212,13 @@ static void * v8_handle(void * p)
 	method = v8_request_method(request);
 	route = v8_request_route(request);
 
-	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route);
+	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
 
 	for (i = 0; actions[i].method != V8_METHOD_UNKNOWN; ++i)
 	{
 		if (method == actions[i].method
 		    && actions[i].route != NULL
-		    && strcmp(route, actions[i].route) == 0)
+		    && strcmp(route + v8->base_size, actions[i].route) == 0)
 		{
 			if (actions[i].filter == NULL || actions[i].filter(request))
 			{
