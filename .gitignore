@@ -1,3 +1,6 @@
 *.[oad]
 *.so
 TAGS
+vendor/dist
+/vendor/lua-5.2.2/src/lua
+/vendor/lua-5.2.2/src/luac
