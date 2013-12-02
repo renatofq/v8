@@ -206,6 +206,7 @@ static void * v8_handle(void * p)
 	const char * route;
 	int i = 0;
 
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 	pthread_setspecific(g_v8_data_key, data);
 
 	v8_scgi_request_read(sock, request);
@@ -310,8 +311,7 @@ static void v8_sigsegv_handler(int signum)
 {
 	g_v8_quit = signum;
 
-	/* FIXME: pthread_exit is not async-signal-safe */
-	pthread_exit(NULL);
+	pthread_cancel(pthread_self());
 }
 
 static void v8_sigterm_handler(int signum)
