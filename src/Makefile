@@ -20,10 +20,14 @@ SRCS = \
 
 TARGET = libV8.so
 
+ifeq ($(CFG),debug)
+CFLAGS += -DV8_DEBUG
+endif
+
 CFLAGS += -fPIC
 LDFLAGS += -shared
 LIBS += -pthread -lm -L$(V8_ROOT)/vendor/dist/lib -llua
-INCFLAGS +=
+
 
 all: target
 
