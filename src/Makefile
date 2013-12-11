@@ -11,6 +11,8 @@ SRCS = \
 	log.c \
 	lua.c \
 	map.c \
+	worker_thread.c \
+	worker_pool.c \
 	request.c \
 	response.c \
 	scgi.c \

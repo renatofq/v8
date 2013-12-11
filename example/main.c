@@ -62,7 +62,7 @@ void tryleak_handler(const V8Request * request, V8Response * response)
 	v8_response_write(response, "<H1>Hello Turbo</h1>");
 
 	/* this memory does not leak */
-	v8_malloc(512);
+	//v8_malloc(512);
 }
 
 void admin_handler(const V8Request * request, V8Response * response)

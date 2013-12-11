@@ -26,7 +26,7 @@
 
 #define V8_FORMATTER_SIZE (4*1024)
 
-typedef struct v8_response_t
+struct v8_response_t
 {
 	int fd;
 	V8ResponseStatus status;
@@ -35,7 +35,7 @@ typedef struct v8_response_t
 	V8View * view;
 	V8Buffer * body;
 	const V8Request * request;
-} V8Response;
+};
 
 
 static const char * v8_response_status_phrase(int status);

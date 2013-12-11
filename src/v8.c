@@ -1,4 +1,5 @@
-/* Copyright (C) 2013, Renato Fernandes de Queiroz <renatofq@gmail.com>
+/* Copyright (C) 2013, Renato Fernandes
+ de Queiroz <renatofq@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,11 +19,11 @@
 #include <v8/scgi.h>
 #include <v8/config.h>
 #include <v8/list.h>
-
+#include <v8/job.h>
+#include <v8/worker_pool.h>
 
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -35,35 +36,29 @@ struct v8_t
 	int sock;
 	int base_size;
 	V8Config * config;
+	V8WorkerPool * worker_pool;
 	const V8Action * actions;
 };
 
-
-typedef struct v8_thred_data_t
+typedef struct v8_router_data
 {
 	int sock;
-	V8List * mem;
-} V8ThreadData;
-
+} V8RouterData;
 
 static int v8_init_socket(V8 * v8);
-static V8ThreadData * v8_thread_data_create(int sock);
-static void v8_thread_data_destroy(void * data);
-static void * v8_handle(void * p);
-static void v8_sigsegv_handler(int signum);
-static void v8_sigterm_handler(int signum);
+static int v8_router(void * p);
+static void v8_dispatch(const V8 * v8, int sock);
+static void v8_termination_handler(int signum);
 
 static volatile sig_atomic_t g_v8_quit = 0;
 static const V8 * g_v8 = NULL;
-static pthread_key_t g_v8_data_key;
 
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
 	V8 * v8 = (V8 *)malloc(sizeof(V8));
-	int rc = pthread_key_create(&g_v8_data_key, v8_thread_data_destroy);
 
-	if (v8 != NULL && rc == 0)
+	if (v8 != NULL)
 	{
 		v8->actions = actions;
 		v8->config = v8_config_create_from_file(configFile);
@@ -72,6 +67,12 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
 		                                   "warning"));
 		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
+
+		v8_worker_thread_init();
+
+		v8->worker_pool =
+		v8_worker_pool_create(v8_config_int(v8->config, "worker.min", 10),
+			                      v8_config_int(v8->config, "worker.max", 100));
 
 		g_v8 = v8;
 
@@ -86,8 +87,6 @@ int v8_start(const V8 * v8)
 	int ret = 0;
 	int newsock = 0;
 	int backlog = 0;
-	pthread_t thread;
-	pthread_attr_t attr;
 	struct sigaction act;
 
 	v8_log_info("V8 Starting");
@@ -95,10 +94,7 @@ int v8_start(const V8 * v8)
 	memset(&act, 0, sizeof(act));
 
 	/* registering signal handlers */
-	act.sa_handler = v8_sigsegv_handler;
-	sigaction(SIGSEGV, &act, NULL);
-
-	act.sa_handler = v8_sigterm_handler;
+	act.sa_handler = v8_termination_handler;
 	sigaction(SIGTERM, &act, NULL);
 	sigaction(SIGQUIT, &act, NULL);
 	sigaction(SIGINT, &act, NULL);
@@ -111,23 +107,24 @@ int v8_start(const V8 * v8)
 		return ret;
 	}
 
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
+	v8_log_debug("Waiting for connections");
 	while (g_v8_quit == 0)
 	{
 		newsock = accept(v8->sock, NULL, NULL);
 
 		if (newsock != -1)
 		{
-			V8ThreadData * thread_data = v8_thread_data_create(newsock);
-			pthread_create(&thread, &attr, v8_handle, thread_data);
+			//v8_log_debug("Connection accepted");
+			v8_dispatch(v8, newsock);
+		}
+		else
+		{
+			v8_log_error("Fail to accept connection");
 		}
 	}
 
 	/* FIXME: Wait running threads finish */
-
-	pthread_attr_destroy(&attr);
 
 	v8_log_info("V8 shutting down");
 
@@ -135,53 +132,21 @@ int v8_start(const V8 * v8)
 }
 
 
-void * v8_malloc(size_t size)
-{
-	void * ptr = malloc(size);
-	V8ThreadData * thread_data = (V8ThreadData *)
-		pthread_getspecific(g_v8_data_key);
+/* void * v8_malloc(size_t size) */
+/* { */
+/* 	void * ptr = malloc(size); */
+/* 	V8ThreadData * thread_data = (V8ThreadData *) */
+/* 		pthread_getspecific(g_v8_data_key); */
 
 
-	if (ptr != NULL)
-	{
-		v8_log_debug("Thread memory allocated %p", ptr);
-		v8_list_push(thread_data->mem, ptr);
-	}
+/* 	if (ptr != NULL) */
+/* 	{ */
+/* 		v8_log_debug("Thread memory allocated %p", ptr); */
+/* 		v8_list_push(thread_data->mem, ptr); */
+/* 	} */
 
-	return ptr;
-}
-
-
-static V8ThreadData * v8_thread_data_create(int sock)
-{
-	V8ThreadData * thread_data = (V8ThreadData *) malloc(sizeof(V8ThreadData));
-
-	if (thread_data == NULL)
-	{
-		return NULL;
-	}
-
-	thread_data->sock = sock;
-	thread_data->mem = v8_list_create(NULL, free);
-
-	return thread_data;
-}
-
-static void v8_thread_data_destroy(void * data)
-{
-	V8ThreadData * thread_data = (V8ThreadData *)data;
-
-	thread_data->sock = -1;
-	if (thread_data->mem != NULL )
-	{
-		v8_list_destroy(thread_data->mem);
-		thread_data->mem = NULL;
-	}
-
-	pthread_setspecific(g_v8_data_key, NULL);
-	free(thread_data);
-}
-
+/* 	return ptr; */
+/* } */
 
 
 const char * v8_global_config_str(const char * name, const char * def)
@@ -194,9 +159,9 @@ int v8_global_config_int(const char * name, int def)
 	return v8_config_int(g_v8->config, name, def);
 }
 
-static void * v8_handle(void * p)
+static int v8_router(void * p)
 {
-	V8ThreadData * data = (V8ThreadData *)p;
+	V8RouterData * data = (V8RouterData *)p;
 	int sock = data->sock;
 	const V8 * v8 = g_v8;
 	const V8Action * actions = v8->actions;
@@ -205,15 +170,17 @@ static void * v8_handle(void * p)
 	V8RequestMethod method = V8_METHOD_UNKNOWN;
 	const char * route;
 	int i = 0;
+	int ret = 0;
 
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-	pthread_setspecific(g_v8_data_key, data);
-
-	v8_scgi_request_read(sock, request);
+	ret = v8_scgi_request_read(sock, request);
+	if (ret < 0)
+	{
+		goto error_cleanup;
+	}
 	method = v8_request_method(request);
 	route = v8_request_route(request);
 
-	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
+	//	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
 
 	for (i = 0; actions[i].method != V8_METHOD_UNKNOWN; ++i)
 	{
@@ -240,7 +207,12 @@ static void * v8_handle(void * p)
 	v8_request_destroy(request);
 	close(sock);
 
-	return NULL;
+	return 0;
+
+ error_cleanup:
+	close(sock);
+
+	return -1;
 }
 
 static int v8_init_socket(V8 * v8)
@@ -306,15 +278,34 @@ static int v8_init_socket(V8 * v8)
 	return ret;
 }
 
-
-static void v8_sigsegv_handler(int signum)
+static void v8_dispatch(const V8 * v8, int sock)
 {
-	g_v8_quit = signum;
+	V8Job job;
+	V8RouterData data;
+	V8WorkerThread * worker = NULL;
 
-	pthread_cancel(pthread_self());
+	data.sock = sock;
+	job.run = v8_router;
+	job.data = &data;
+
+	/*
+	   WARNING: This allocation/dispatch/unallocation mechanism of workers is very
+	   simple and focused on this particular implementation. If you need change it,
+	   be sure you understand it.
+	*/
+	worker = v8_worker_pool_alloc(v8->worker_pool);
+	if (worker != NULL)
+	{
+		//v8_log_debug("Found available worker");
+		v8_worker_thread_dispatch(worker, &job);
+	}
+	else
+	{
+		v8_log_warn("Limit of simultaneous requests reached. Discarding");
+	}
 }
 
-static void v8_sigterm_handler(int signum)
+static void v8_termination_handler(int signum)
 {
 	g_v8_quit = signum;
 }

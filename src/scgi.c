@@ -22,6 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 
 static const long V8_SCGI_MAX_HEADER_SIZE = (10*1024);
 static const long V8_SCGI_MAX_REQUEST_SIZE = (10*1024);
@@ -55,10 +56,11 @@ int v8_scgi_request_read(int fd, V8Request * request)
 		goto out;
 	}
 
+	errno = 0;
 	ret = v8_scgi_read_header(fd, buffer);
 	if (ret <= 0)
 	{
-		v8_log_error("Could no read request header");
+		v8_log_error("Could no read request header: (%d) %s", errno, strerror(errno));
 		ret = -1;
 		goto cleanup;
 	}
@@ -97,6 +99,9 @@ static int v8_scgi_read_header(int fd, char * buffer)
 		read_size = read(fd, &c, 1);
 		if (read_size != 1 || (!isdigit(c) && c != ':'))
 		{
+			buffer[i] = c;
+			buffer[i+1] = '\0';
+			v8_log_error("scgi request header ill formed: %s", buffer);
 			return -1;
 		}
 		buffer[i] = c;
@@ -109,17 +114,20 @@ static int v8_scgi_read_header(int fd, char * buffer)
 
 	if (header_size <= 0 || header_size > V8_SCGI_MAX_HEADER_SIZE)
 	{
+		v8_log_error("scgi header size (%d) is invalid", header_size);
 		return -1;
 	}
 
 	read_size = read(fd, buffer, header_size);
 	if (read_size < header_size)
 	{
+		v8_log_error("scgi: The read size (%d) was lesser than expected", read_size);
 		return -1;
 	}
 
 	if (buffer[header_size - 1] != ',')
 	{
+		v8_log_error("scgi request header ill formed, lacks comma");
 		return -1;
 	}
 
@@ -140,7 +148,7 @@ static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size)
 		value = buffer + i;
 		i += strlen(buffer + i) + 1;
 
-		v8_log_debug("SCGI HEADER: %s -> %s", key, value);
+		//v8_log_debug("SCGI HEADER: %s -> %s", key, value);
 		v8_strmap_insert(header, key, value);
 	}
 }
@@ -155,13 +163,14 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 	length_str = v8_strmap_value(request->header, "CONTENT_LENGTH");
 	if (length_str == NULL)
 	{
+		v8_log_error("Content length undefined");
 		return -1;
 	}
 
 	length = atoi(length_str);
-
 	if (length < 0 || length > V8_SCGI_MAX_REQUEST_SIZE)
 	{
+		v8_log_error("Invalid content length");
 		return -1;
 	}
 
@@ -173,6 +182,7 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 
 	if (read_size < length)
 	{
+		v8_log_error("Unable to read body");
 		free(request->body);
 		request->body = NULL;
 		return -1;

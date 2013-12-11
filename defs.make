@@ -24,7 +24,6 @@ LUA = lua-5.2.2
 
 ifeq ($(CFG),debug)
 CFLAGS = -ggdb -D_DEBUG
-LDFLAGS = -Wl,--incremental
 else
 CFLAGS = -O2
 endif
