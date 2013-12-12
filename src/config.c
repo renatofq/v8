@@ -30,7 +30,7 @@ struct v8_config_t
 
 V8Config * v8_config_create(void)
 {
-	V8Config * config = (V8Config *)malloc(sizeof(V8Config));
+	V8Config * config = malloc(sizeof(V8Config));
 
 	if (config != NULL)
 	{

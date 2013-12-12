@@ -49,7 +49,7 @@ static void v8_map_iterate_r(const V8MapNode * node, V8MapVisitor visitor);
 
 V8Map * v8_map_create(V8MapAllocator allocator, V8MapDestructor destructor)
 {
-	V8Map * map = (V8Map *)malloc(sizeof(V8Map));
+	V8Map * map = malloc(sizeof(V8Map));
 
 	if (map == NULL)
 	{
@@ -175,7 +175,7 @@ const void * v8_map_iterator_value(const V8MapIterator * it)
 static V8MapNode * v8_map_node_create(const V8Map * map, v8_key_t key,
                                       const void * value)
 {
-	V8MapNode * node = (V8MapNode *)malloc(sizeof(V8MapNode));
+	V8MapNode * node = malloc(sizeof(V8MapNode));
 
 	node->key = key;
 

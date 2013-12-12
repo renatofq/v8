@@ -56,7 +56,7 @@ static const V8 * g_v8 = NULL;
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
-	V8 * v8 = (V8 *)malloc(sizeof(V8));
+	V8 * v8 = malloc(sizeof(V8));
 
 	if (v8 != NULL)
 	{

@@ -32,7 +32,7 @@ static int v8_buffer_new_size(int size, int min_size);
 
 V8Buffer * v8_buffer_create(void)
 {
-	V8Buffer * buffer = (V8Buffer *)malloc(sizeof(V8Buffer));
+	V8Buffer * buffer = malloc(sizeof(V8Buffer));
 
 	if (buffer != NULL)
 	{

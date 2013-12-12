@@ -38,7 +38,7 @@ V8Cookie * v8_cookie_create(const char * name, const char * value)
 	  return NULL;
   }
 
-	cookie = (V8Cookie *)malloc(sizeof(V8Cookie));
+	cookie = malloc(sizeof(V8Cookie));
 	if (cookie == NULL)
   {
 	  return NULL;

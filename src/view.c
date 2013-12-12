@@ -28,7 +28,7 @@ struct v8_view_t
 
 V8View * v8_view_create(V8Buffer * buffer, const V8Map * params)
 {
-	V8View * view = (V8View *)malloc(sizeof(V8View));
+	V8View * view = malloc(sizeof(V8View));
 
 	if (view != NULL)
 	{

@@ -41,7 +41,7 @@ static void v8_list_iterate_r(const V8ListNode * node, V8ListVisitor visitor);
 
 V8List * v8_list_create(V8ListAllocator allocator, V8ListDestructor destructor)
 {
-	V8List * list = (V8List *)malloc(sizeof(V8List));
+	V8List * list = malloc(sizeof(V8List));
 
 	if (list != NULL)
   {
@@ -173,7 +173,7 @@ const void * v8_list_iterator_get(const V8ListIterator * it)
 
 static V8ListNode * v8_list_node_create(const V8List * list, const void * data)
 {
-	V8ListNode * node = (V8ListNode *)malloc(sizeof(V8ListNode));
+	V8ListNode * node = malloc(sizeof(V8ListNode));
 
 	if (node == NULL)
 	{

@@ -97,7 +97,7 @@ static V8StrPair * v8_strmap_pair_create(const char * key, const char * value)
 	  return NULL;
   }
 
-	pair = (V8StrPair *)malloc(sizeof(V8StrPair));
+	pair = malloc(sizeof(V8StrPair));
 	if (pair == NULL)
   {
 	  return NULL;

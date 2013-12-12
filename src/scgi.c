@@ -48,7 +48,7 @@ int v8_scgi_request_read(int fd, V8Request * request)
 		goto out;
 	}
 
-	buffer = (char *)malloc(V8_SCGI_MAX_HEADER_SIZE);
+	buffer = malloc(V8_SCGI_MAX_HEADER_SIZE);
 	if (buffer == NULL)
 	{
 		v8_log_error("Could no allocate memory to read request");
@@ -174,7 +174,7 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 		return -1;
 	}
 
-	request->body = (char *)malloc(length + 1);
+	request->body = malloc(length + 1);
 	if (length > 0)
 	{
 		read_size = read(fd, request->body, length);
@@ -254,7 +254,7 @@ static void v8_scgi_fill_route(V8Request * request)
 		return;
 	}
 
-	request->route = (char *)malloc(strlen(route) + 1);
+	request->route = malloc(strlen(route) + 1);
 	if (request->route == NULL)
   {
 	  v8_log_error("Error while trying to set route");
@@ -370,7 +370,7 @@ static void v8_scgi_parse_query(V8Request * request)
 		goto cleanup;
 	}
 
-	buffer = (char *)malloc(len + 1);
+	buffer = malloc(len + 1);
 	if (buffer == NULL)
 	{
 		v8_log_error("error parsing params");

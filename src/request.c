@@ -22,7 +22,7 @@
 
 V8Request * v8_request_create(void)
 {
-	V8Request * request = (V8Request *)malloc(sizeof(V8Request));
+	V8Request * request = malloc(sizeof(V8Request));
 
 	if (request != NULL)
 	{

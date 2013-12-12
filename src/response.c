@@ -42,7 +42,7 @@ static const char * v8_response_status_phrase(int status);
 
 V8Response * v8_response_create(V8Request * request, int fd)
 {
-	V8Response * response = (V8Response *)malloc(sizeof(V8Response));
+	V8Response * response = malloc(sizeof(V8Response));
 
 	if (response != NULL)
 	{

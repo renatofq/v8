@@ -39,7 +39,7 @@ V8WorkerPool * v8_worker_pool_create(int def_size, int max_size)
 		goto error_cleanup;
 	}
 
-	pool = (V8WorkerPool *)malloc(sizeof(V8WorkerPool));
+	pool = malloc(sizeof(V8WorkerPool));
 	if (pool == NULL)
 	{
 		v8_log_error("Unable to allocate memory");
