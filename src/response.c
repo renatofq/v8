@@ -15,6 +15,7 @@
 
 #include <v8/response.h>
 
+#include <v8/log.h>
 #include <v8/buffer.h>
 #include <v8/strmap.h>
 #include <v8/list.h>
@@ -43,7 +44,6 @@ static const char * v8_response_status_phrase(int status);
 V8Response * v8_response_create(V8Request * request, int fd)
 {
 	V8Response * response = malloc(sizeof(V8Response));
-
 	if (response != NULL)
 	{
 		response->fd = fd;

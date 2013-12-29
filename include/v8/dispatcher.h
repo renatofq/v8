@@ -13,20 +13,20 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef V8_DISPATCHER_H
+#define V8_DISPATCHER_H
 
-#ifndef V8_WORKER_POOL_H
-#define V8_WORKER_POOL_H
+#include <v8/listener.h>
 
-#include <v8/dispatcher.h>
-#include <v8/worker.h>
+typedef struct v8_dispatcher_t V8Dispatcher;
 
-typedef struct v8_worker_pool V8WorkerPool;
+V8Dispatcher * v8_dispatcher_create(void);
 
-V8WorkerPool * v8_worker_pool_create(V8Dispatcher * dispatcher, int def_size,
-                                     int max_size);
+void v8_dispatcher_destroy(V8Dispatcher * dispatcher);
 
-void v8_worker_pool_destroy(V8WorkerPool * pool);
+int v8_dispatcher_add_listener(V8Dispatcher * dispatcher, int fd,
+                               const V8Listener * listener);
 
-V8Worker * v8_worker_pool_alloc(V8WorkerPool * pool);
+void v8_dispatcher_start(V8Dispatcher * dispatcher);
 
 #endif

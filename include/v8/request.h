@@ -37,8 +37,8 @@ typedef struct v8_request_t
 	char * route;
 	V8Map * header;
 	V8Map * params;
-	char * body;
 	int body_size;
+	char * body;
 } V8Request;
 
 

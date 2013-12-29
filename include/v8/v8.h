@@ -35,7 +35,8 @@ typedef struct v8_action_t
 
 V8 * v8_init(const char * configFile, const V8Action * actions);
 
-int v8_start(const V8 * v8);
+int v8_start(V8 * v8);
+
 
 void * v8_malloc(size_t size);
 

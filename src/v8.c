@@ -1,5 +1,4 @@
-/* Copyright (C) 2013, Renato Fernandes
- de Queiroz <renatofq@gmail.com>
+/* Copyright (C) 2013, Renato Fernandes de Queiroz <renatofq@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,19 +15,20 @@
 
 #include <v8/v8.h>
 #include <v8/log.h>
+#include <v8/dispatcher.h>
 #include <v8/scgi.h>
 #include <v8/config.h>
 #include <v8/list.h>
 #include <v8/job.h>
-#include <v8/worker_pool.h>
 
 #include <stdlib.h>
+#include <string.h>
+#include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
-#include <string.h>
 
 
 struct v8_t
@@ -36,19 +36,17 @@ struct v8_t
 	int sock;
 	int base_size;
 	V8Config * config;
-	V8WorkerPool * worker_pool;
+	V8Dispatcher * dispatcher;
 	const V8Action * actions;
 };
 
-typedef struct v8_router_data
-{
-	int sock;
-} V8RouterData;
 
 static int v8_init_socket(V8 * v8);
-static int v8_router(void * p);
-static void v8_dispatch(const V8 * v8, int sock);
-static void v8_termination_handler(int signum);
+static int v8_request_handler(V8 * v8, int sock);
+/* static void v8_termination_handler(int signum); */
+static void v8_connection_listener_init(V8 * v8, V8Listener * listener);
+static void v8_handle_connection(int fd, void * data);
+static void v8_handle_error(int fd, void * data);
 
 static volatile sig_atomic_t g_v8_quit = 0;
 static const V8 * g_v8 = NULL;
@@ -60,71 +58,33 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 
 	if (v8 != NULL)
 	{
+		/* FIXME: Handler errors */
 		v8->actions = actions;
 		v8->config = v8_config_create_from_file(configFile);
-		v8_init_socket(v8);
+		v8->sock = v8_init_socket(v8);
 
 		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
 		                                   "warning"));
 		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
-
-		v8_worker_thread_init();
-
-		v8->worker_pool =
-		v8_worker_pool_create(v8_config_int(v8->config, "worker.min", 10),
-			                      v8_config_int(v8->config, "worker.max", 100));
+		v8->dispatcher = v8_dispatcher_create();
 
 		g_v8 = v8;
-
 	}
 
 	return v8;
 }
 
 
-int v8_start(const V8 * v8)
+int v8_start(V8 * v8)
 {
-	int ret = 0;
-	int newsock = 0;
-	int backlog = 0;
-	struct sigaction act;
+	V8Listener listener;
 
-	v8_log_info("V8 Starting");
-
-	memset(&act, 0, sizeof(act));
-
-	/* registering signal handlers */
-	act.sa_handler = v8_termination_handler;
-	sigaction(SIGTERM, &act, NULL);
-	sigaction(SIGQUIT, &act, NULL);
-	sigaction(SIGINT, &act, NULL);
-
-	backlog = v8_config_int(v8->config, "v8.backlog", 1);
-	ret = listen(v8->sock, backlog);
-	if (ret == -1)
-	{
-		v8_log_error("Failed to listen socket");
-		return ret;
-	}
-
+	v8_connection_listener_init(v8, &listener);
+	v8_dispatcher_add_listener(v8->dispatcher, v8->sock, &listener);
 
 	v8_log_debug("Waiting for connections");
-	while (g_v8_quit == 0)
-	{
-		newsock = accept(v8->sock, NULL, NULL);
 
-		if (newsock != -1)
-		{
-			//v8_log_debug("Connection accepted");
-			v8_dispatch(v8, newsock);
-		}
-		else
-		{
-			v8_log_error("Fail to accept connection");
-		}
-	}
-
-	/* FIXME: Wait running threads finish */
+	v8_dispatcher_start(v8->dispatcher);
 
 	v8_log_info("V8 shutting down");
 
@@ -132,21 +92,10 @@ int v8_start(const V8 * v8)
 }
 
 
-/* void * v8_malloc(size_t size) */
-/* { */
-/* 	void * ptr = malloc(size); */
-/* 	V8ThreadData * thread_data = (V8ThreadData *) */
-/* 		pthread_getspecific(g_v8_data_key); */
-
-
-/* 	if (ptr != NULL) */
-/* 	{ */
-/* 		v8_log_debug("Thread memory allocated %p", ptr); */
-/* 		v8_list_push(thread_data->mem, ptr); */
-/* 	} */
-
-/* 	return ptr; */
-/* } */
+void * v8_malloc(size_t size)
+{
+	return malloc(size);
+}
 
 
 const char * v8_global_config_str(const char * name, const char * def)
@@ -159,11 +108,108 @@ int v8_global_config_int(const char * name, int def)
 	return v8_config_int(g_v8->config, name, def);
 }
 
-static int v8_router(void * p)
+
+static int v8_init_socket(V8 * v8)
 {
-	V8RouterData * data = (V8RouterData *)p;
-	int sock = data->sock;
-	const V8 * v8 = g_v8;
+	int sock = -1;
+	int backlog = 0;
+	const char * node = NULL;
+	const char * port = NULL;
+	struct addrinfo hints;
+	struct addrinfo * res = NULL;
+	int reuseaddr = 1;
+	int ret = 0;
+
+	node = v8_config_str(v8->config, "v8.listen", "127.0.0.1");
+	port = v8_config_str(v8->config, "v8.port", "4900");
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+
+	ret = getaddrinfo(node, port, &hints, &res);
+	if (ret != 0)
+	{
+		goto cleanup;
+	}
+
+	/* Create the socket */
+	sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (sock == -1)
+	{
+		goto cleanup;
+	}
+
+	/* Enable the socket to reuse the address */
+	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
+	                 sizeof(int));
+	if (ret == -1)
+	{
+		goto cleanup;
+	}
+
+	/* Bind to the address */
+	ret = bind(sock, res->ai_addr, res->ai_addrlen);
+	if (ret == -1)
+	{
+		goto cleanup;
+	}
+
+	freeaddrinfo(res);
+
+	backlog = v8_config_int(v8->config, "v8.backlog", 1);
+	ret = listen(sock, backlog);
+	if (ret == -1)
+	{
+		v8_log_error("Failed to listen socket");
+		goto cleanup;
+	}
+
+	return sock;
+
+ cleanup:
+	if (res != NULL)
+	{
+		freeaddrinfo(res);
+		res = NULL;
+	}
+
+	close(sock);
+
+	return -1;
+}
+
+static int v8_fork(V8 * v8, int sock)
+{
+	pid_t pid;
+	int ret = 0;
+
+	pid = fork();
+	if (pid < 0)
+	{
+		v8_log_error("Failed to create worker process %d", errno);
+		ret = -1;
+	}
+	else if (pid == 0)
+	{
+		/* Closing binder */
+		close(v8->sock);
+		v8->sock = -1;
+		v8_dispatcher_destroy(v8->dispatcher);
+		v8->dispatcher = NULL;
+
+		exit(v8_request_handler(v8, sock));
+	}
+
+	/* This socket will be handled by child */
+	close(sock);
+
+	return ret;
+
+}
+
+static int v8_request_handler(V8 * v8, int sock)
+{
 	const V8Action * actions = v8->actions;
 	V8Request * request = v8_request_create();
 	V8Response * response = v8_response_create(request, sock);
@@ -175,12 +221,13 @@ static int v8_router(void * p)
 	ret = v8_scgi_request_read(sock, request);
 	if (ret < 0)
 	{
+		v8_log_warn("Could not read request");
 		goto error_cleanup;
 	}
 	method = v8_request_method(request);
 	route = v8_request_route(request);
 
-	//	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
+	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
 
 	for (i = 0; actions[i].method != V8_METHOD_UNKNOWN; ++i)
 	{
@@ -205,6 +252,7 @@ static int v8_router(void * p)
 	v8_response_send(response);
 	v8_response_destroy(response);
 	v8_request_destroy(request);
+
 	close(sock);
 
 	return 0;
@@ -215,97 +263,46 @@ static int v8_router(void * p)
 	return -1;
 }
 
-static int v8_init_socket(V8 * v8)
+static void v8_connection_listener_init(V8 * v8, V8Listener * listener)
 {
-	int sock = -1;
-	const char * node = NULL;
-	const char * port = NULL;
-	struct addrinfo hints;
-	struct addrinfo * res = NULL;
-	int reuseaddr = 1;
-	int ret = 0;
+	listener->data = v8;
 
-	node = v8_config_str(v8->config, "v8.listen", "127.0.0.1");
-	port = v8_config_str(v8->config, "v8.port", "4900");
+	listener->input_handler = v8_handle_connection;
+	listener->output_handler = NULL;
+	listener->closed_handler = NULL;
+	listener->error_handler = v8_handle_error;
+	listener->hangup_handler = NULL;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	if (getaddrinfo(node, port, &hints, &res) != 0)
-	{
-		ret = -1;
-		goto cleanup;
-	}
-
-	/* Create the socket */
-	sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (sock == -1)
-	{
-		ret = -1;
-		goto cleanup;
-	}
-
-	/* Enable the socket to reuse the address */
-	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
-	                 sizeof(int));
-	if (ret == -1) {
-		goto cleanup;
-	}
-
-	/* Bind to the address */
-	ret = bind(sock, res->ai_addr, res->ai_addrlen);
-	if (ret == -1) {
-		goto cleanup;
-	}
-
-
- cleanup:
-	if (res != NULL)
-	{
-		freeaddrinfo(res);
-		res = NULL;
-	}
-
-	if (ret == -1)
-	{
-		v8_log_error("Failed to create and/or bind to socket");
-		close(sock);
-		sock = -1;
-	}
-
-	v8->sock = sock;
-
-	return ret;
+	listener->destructor = NULL;
 }
 
-static void v8_dispatch(const V8 * v8, int sock)
+static void v8_handle_connection(int fd, void * data)
 {
-	V8Job job;
-	V8RouterData data;
-	V8WorkerThread * worker = NULL;
+	int newsock;
+	V8 * v8 = data;
 
-	data.sock = sock;
-	job.run = v8_router;
-	job.data = &data;
+	while (g_v8_quit == 0)
+	{
+		newsock = accept(v8->sock, NULL, NULL);
 
-	/*
-	   WARNING: This allocation/dispatch/unallocation mechanism of workers is very
-	   simple and focused on this particular implementation. If you need change it,
-	   be sure you understand it.
-	*/
-	worker = v8_worker_pool_alloc(v8->worker_pool);
-	if (worker != NULL)
-	{
-		//v8_log_debug("Found available worker");
-		v8_worker_thread_dispatch(worker, &job);
+		if (newsock != -1)
+		{
+			v8_log_debug("Connection accepted");
+
+			if (v8_fork(v8, newsock) != 0)
+			{
+				v8_log_error("Fail to fork process");
+			}
+		}
+		else
+		{
+			v8_log_error("Fail to accept connection");
+		}
 	}
-	else
-	{
-		v8_log_warn("Limit of simultaneous requests reached. Discarding");
-	}
+
 }
 
-static void v8_termination_handler(int signum)
+static void v8_handle_error(int fd, void * data)
 {
-	g_v8_quit = signum;
+	/* TODO: handle error */
 }

@@ -15,6 +15,7 @@
 
 #include <v8/request.h>
 #include <v8/strmap.h>
+#include <v8/log.h>
 
 #include <stdlib.h>
 
@@ -30,8 +31,8 @@ V8Request * v8_request_create(void)
 		request->route = NULL;
 		request->header = v8_strmap_create();
 		request->params = v8_strmap_create();
-		request->body = NULL;
 		request->body_size = 0;
+		request->body = NULL;
  }
 
 	return request;

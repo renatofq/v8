@@ -11,13 +11,12 @@ SRCS = \
 	log.c \
 	lua.c \
 	map.c \
-	worker_thread.c \
-	worker_pool.c \
 	request.c \
 	response.c \
 	scgi.c \
 	strmap.c \
 	v8.c \
+	dispatcher.c \
 	view.c
 
 TARGET = libV8.so

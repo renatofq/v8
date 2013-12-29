@@ -13,22 +13,24 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef V8_LISTENER_H
+#define V8_LISTENER_H
 
-#ifndef V8_WORKER_THREAD_H
-#define V8_WORKER_THREAD_H
+typedef void (*V8EventHandler)(int fd, void * data);
+typedef void (*V8ListenerDataDestructor)(void * data);
 
-#include <v8/job.h>
+typedef struct v8_listener_t
+{
+	void * data;
 
-typedef struct v8_worker_thread_t V8WorkerThread;
+	V8EventHandler input_handler;
+	V8EventHandler output_handler;
+	V8EventHandler closed_handler;
+	V8EventHandler error_handler;
+	V8EventHandler hangup_handler;
 
-int v8_worker_thread_init(void);
+	V8ListenerDataDestructor destructor;
+} V8Listener;
 
-V8WorkerThread * v8_worker_thread_create(void);
-
-void v8_worker_thread_destroy(V8WorkerThread * worker);
-
-int v8_worker_thread_is_busy(const V8WorkerThread * worker);
-
-int v8_worker_thread_dispatch(V8WorkerThread * worker, const V8Job * job);
 
 #endif
