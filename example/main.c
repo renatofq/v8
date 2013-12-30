@@ -7,7 +7,7 @@
 #include "atable.h"
 
 
-int is_admin(const V8Request * request);
+V8Handler * is_admin(const V8Request * request);
 void basic_handler(const V8Request * request, V8Response * response);
 void lua_handler(const V8Request * request, V8Response * response);
 void admin_handler(const V8Request * request, V8Response * response);
@@ -71,9 +71,9 @@ void admin_handler(const V8Request * request, V8Response * response)
 }
 
 
-int is_admin(const V8Request * request)
+V8Handler * is_admin(const V8Request * request)
 {
-	return 0;
+	return NULL;
 }
 
 int main(int argc, char * argv[])

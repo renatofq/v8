@@ -30,7 +30,8 @@ V8Request * v8_request_create(void)
 		request->method = V8_METHOD_UNKNOWN;
 		request->route = NULL;
 		request->header = v8_strmap_create();
-		request->params = v8_strmap_create();
+		request->params = NULL; /* Lazy allocation */
+		request->cookies = NULL; /* Lazy allocation */
 		request->body_size = 0;
 		request->body = NULL;
  }
@@ -59,6 +60,12 @@ void v8_request_destroy(V8Request * request)
 	{
 		v8_map_destroy(request->params);
 		request->params = NULL;
+	}
+
+	if (request->cookies != NULL)
+	{
+		v8_map_destroy(request->cookies);
+		request->cookies = NULL;
 	}
 
 	if (request->body != NULL)
@@ -91,6 +98,18 @@ const char * v8_request_header(const V8Request * request, const char * header)
 	else
 	{
 		return v8_strmap_value(request->header, header);
+	}
+}
+
+const char * v8_request_cookie(const V8Request * request, const char * cookie)
+{
+	if (request == NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		return v8_strmap_value(request->cookies, cookie);
 	}
 }
 

@@ -21,15 +21,15 @@
 #include <v8/response.h>
 
 typedef struct v8_t V8;
-typedef void (*V8Handler)(const V8Request *, V8Response *);
-typedef int (*V8Filter)(const V8Request *);
+typedef void (V8Handler)(const V8Request *, V8Response *);
+typedef V8Handler * (V8Filter)(const V8Request *);
 
 typedef struct v8_action_t
 {
 	V8RequestMethod method;
 	char route[512];
-	V8Handler handler;
-	V8Filter filter;
+	V8Handler * handler;
+	V8Filter * filter;
 } V8Action;
 
 
