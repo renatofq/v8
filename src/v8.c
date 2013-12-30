@@ -46,6 +46,9 @@ struct v8_t
 static int v8_init_socket(V8 * v8);
 static int v8_init_signals(void);
 
+static int v8_fork(V8 * v8, int sock);
+static void v8_child_exec(V8 * v8, int sock);
+
 static int v8_request_handler(V8 * v8, int sock);
 
 static void v8_connection_listener_init(V8 * v8, V8Listener * listener);
@@ -56,7 +59,6 @@ static void v8_signal_listener_init(V8 * v8, V8Listener * listener);
 static void v8_handle_signal(int fd, void * data);
 static void v8_handle_signal_error(int fd, void * data);
 
-static volatile sig_atomic_t g_v8_quit = 0;
 static const V8 * g_v8 = NULL;
 
 
@@ -248,19 +250,47 @@ static int v8_fork(V8 * v8, int sock)
 	}
 	else if (pid == 0)
 	{
-		/* Closing binder */
-		close(v8->sock);
-		v8->sock = -1;
-		v8_dispatcher_destroy(v8->dispatcher);
-		v8->dispatcher = NULL;
-
-		exit(v8_request_handler(v8, sock));
+		/* Never returns */
+		v8_child_exec(v8, sock);
 	}
 
 	/* This socket will be handled by child */
 	close(sock);
 
 	return ret;
+
+}
+
+static void v8_child_exec(V8 * v8, int sock)
+{
+	sigset_t mask;
+	int ret = 0;
+
+	/* Closing parent's fds */
+	close(v8->sigfd);
+	v8->sigfd = -1;
+	close(v8->sock);
+	v8->sock = -1;
+
+	v8_dispatcher_destroy(v8->dispatcher);
+	v8->dispatcher = NULL;
+
+	sigemptyset(&mask);
+
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGQUIT);
+	sigaddset(&mask, SIGTERM);
+	sigaddset(&mask, SIGCHLD);
+
+	ret = sigprocmask(SIG_UNBLOCK, &mask, NULL);
+	if (ret == -1)
+	{
+		v8_log_error("Unable to unblock signals: %d", errno);
+		exit(-1);
+	}
+
+
+	exit(v8_request_handler(v8, sock));
 
 }
 
