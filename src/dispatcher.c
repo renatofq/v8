@@ -12,6 +12,7 @@
 
 struct v8_dispatcher_t
 {
+	int run;
 	int epoll;
 	V8Map * event_map;
 };
@@ -36,6 +37,8 @@ V8Dispatcher * v8_dispatcher_create(void)
 
 	if (dispatcher != NULL)
 	{
+		dispatcher->run = 0;
+
 		/* size parameter is deprecated since Linux 2.6.8 */
 		dispatcher->epoll = epoll_create(1);
 
@@ -83,7 +86,6 @@ int v8_dispatcher_add_listener(V8Dispatcher * dispatcher, int fd,
 	int ret = -1;
 
 
-
 	if (dispatcher == NULL || fd < 0 || listener == NULL)
 	{
 		return ret;
@@ -120,9 +122,11 @@ void v8_dispatcher_start(V8Dispatcher * dispatcher)
 		return;
 	}
 
+	dispatcher->run = 1;
+
 	event_map = dispatcher->event_map;
-	/* TODO: create a break condition */
-	while (1)
+
+	while (dispatcher->run)
 	{
 		nfds = epoll_wait(dispatcher->epoll, events, V8_MAX_EVENTS, -1);
 		if (nfds == -1)
@@ -143,6 +147,17 @@ void v8_dispatcher_start(V8Dispatcher * dispatcher)
 			}
 		}
 	}
+}
+
+void v8_dispatcher_stop(V8Dispatcher * dispatcher)
+{
+	if (dispatcher == NULL)
+	{
+		v8_log_error("Null dispacther");
+		return;
+	}
+
+	dispatcher->run = 0;
 }
 
 static V8EpollEvent * v8_epoll_event_create(int fd, const V8Listener * listener)

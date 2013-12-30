@@ -29,11 +29,13 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
+#include <sys/signalfd.h>
+#include <sys/wait.h>
 
 struct v8_t
 {
 	int sock;
+	int sigfd;
 	int base_size;
 	V8Config * config;
 	V8Dispatcher * dispatcher;
@@ -42,11 +44,17 @@ struct v8_t
 
 
 static int v8_init_socket(V8 * v8);
+static int v8_init_signals(void);
+
 static int v8_request_handler(V8 * v8, int sock);
-/* static void v8_termination_handler(int signum); */
+
 static void v8_connection_listener_init(V8 * v8, V8Listener * listener);
 static void v8_handle_connection(int fd, void * data);
-static void v8_handle_error(int fd, void * data);
+static void v8_handle_socket_error(int fd, void * data);
+
+static void v8_signal_listener_init(V8 * v8, V8Listener * listener);
+static void v8_handle_signal(int fd, void * data);
+static void v8_handle_signal_error(int fd, void * data);
 
 static volatile sig_atomic_t g_v8_quit = 0;
 static const V8 * g_v8 = NULL;
@@ -62,6 +70,7 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 		v8->actions = actions;
 		v8->config = v8_config_create_from_file(configFile);
 		v8->sock = v8_init_socket(v8);
+		v8->sigfd = v8_init_signals();
 
 		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
 		                                   "warning"));
@@ -77,14 +86,28 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 
 int v8_start(V8 * v8)
 {
-	V8Listener listener;
+	pid_t pid;
+	int status;
+	V8Listener conn_listener;
+	V8Listener sig_listener;
 
-	v8_connection_listener_init(v8, &listener);
-	v8_dispatcher_add_listener(v8->dispatcher, v8->sock, &listener);
+	v8_connection_listener_init(v8, &conn_listener);
+	v8_dispatcher_add_listener(v8->dispatcher, v8->sock, &conn_listener);
+
+	v8_signal_listener_init(v8, &sig_listener);
+	v8_dispatcher_add_listener(v8->dispatcher, v8->sigfd, &sig_listener);
 
 	v8_log_debug("Waiting for connections");
 
 	v8_dispatcher_start(v8->dispatcher);
+
+	v8_log_info("Wainting childs to terminate");
+	while ((pid = wait(&status) > 0));
+
+	if (pid < 0 && errno != ECHILD)
+	{
+		v8_log_error("Failed when waiting for childs: %d", errno);
+	}
 
 	v8_log_info("V8 shutting down");
 
@@ -179,6 +202,39 @@ static int v8_init_socket(V8 * v8)
 	return -1;
 }
 
+static int v8_init_signals(void)
+{
+	sigset_t mask;
+	int sigfd;
+	int ret = 0;
+
+	sigemptyset(&mask);
+
+	/* Termination signals */
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGQUIT);
+	sigaddset(&mask, SIGTERM);
+
+	/* Child signalization */
+	sigaddset(&mask, SIGCHLD);
+
+	ret = sigprocmask(SIG_BLOCK, &mask, NULL);
+	if (ret == -1)
+	{
+		v8_log_error("Unable to block signals: %d", errno);
+		return -1;
+	}
+
+	sigfd = signalfd(-1, &mask, 0);
+	if (sigfd == -1)
+	{
+		v8_log_error("Unable to create signalfd: %d", errno);
+		return -1;
+	}
+
+	return sigfd;
+}
+
 static int v8_fork(V8 * v8, int sock)
 {
 	pid_t pid;
@@ -270,7 +326,20 @@ static void v8_connection_listener_init(V8 * v8, V8Listener * listener)
 	listener->input_handler = v8_handle_connection;
 	listener->output_handler = NULL;
 	listener->closed_handler = NULL;
-	listener->error_handler = v8_handle_error;
+	listener->error_handler = v8_handle_socket_error;
+	listener->hangup_handler = NULL;
+
+	listener->destructor = NULL;
+}
+
+static void v8_signal_listener_init(V8 * v8, V8Listener * listener)
+{
+	listener->data = v8;
+
+	listener->input_handler = v8_handle_signal;
+	listener->output_handler = NULL;
+	listener->closed_handler = NULL;
+	listener->error_handler = v8_handle_signal_error;
 	listener->hangup_handler = NULL;
 
 	listener->destructor = NULL;
@@ -281,28 +350,69 @@ static void v8_handle_connection(int fd, void * data)
 	int newsock;
 	V8 * v8 = data;
 
-	while (g_v8_quit == 0)
+	newsock = accept(v8->sock, NULL, NULL);
+
+	if (newsock != -1)
 	{
-		newsock = accept(v8->sock, NULL, NULL);
+		v8_log_debug("Connection accepted");
 
-		if (newsock != -1)
+		if (v8_fork(v8, newsock) != 0)
 		{
-			v8_log_debug("Connection accepted");
-
-			if (v8_fork(v8, newsock) != 0)
-			{
-				v8_log_error("Fail to fork process");
-			}
+			v8_log_error("Fail to fork process");
 		}
-		else
-		{
-			v8_log_error("Fail to accept connection");
-		}
+	}
+	else
+	{
+		v8_log_error("Fail to accept connection");
 	}
 
 }
 
-static void v8_handle_error(int fd, void * data)
+static void v8_handle_socket_error(int fd, void * data)
+{
+	/* TODO: handle error */
+}
+
+static void v8_handle_signal(int fd, void * data)
+{
+	V8 * v8 = data;
+	ssize_t sz;
+	int status;
+	pid_t pid;
+	struct signalfd_siginfo siginfo;
+
+	sz = read(v8->sigfd, &siginfo, sizeof(struct signalfd_siginfo));
+	if (sz != sizeof(struct signalfd_siginfo))
+	{
+		v8_log_error("Unable to get signal info: %d", errno);
+		return;
+	}
+
+	switch (siginfo.ssi_signo)
+	{
+	case SIGINT:
+	case SIGQUIT:
+	case SIGTERM:
+		v8_log_info("Termination signal received");
+		v8_dispatcher_stop(v8->dispatcher);
+		break;
+	case SIGCHLD:
+		v8_log_debug("Child signaled");
+		while ((pid = waitpid(-1, &status, WNOHANG) > 0));
+
+		if (pid < 0)
+		{
+			v8_log_error("Failed when waiting for childs: %d", errno);
+		}
+
+		break;
+	default:
+		v8_log_error("Unexpected signal arrived: %d", siginfo.ssi_signo);
+		break;
+	}
+}
+
+static void v8_handle_signal_error(int fd, void * data)
 {
 	/* TODO: handle error */
 }

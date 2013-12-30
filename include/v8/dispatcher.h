@@ -29,4 +29,6 @@ int v8_dispatcher_add_listener(V8Dispatcher * dispatcher, int fd,
 
 void v8_dispatcher_start(V8Dispatcher * dispatcher);
 
+void v8_dispatcher_stop(V8Dispatcher * dispatcher);
+
 #endif
