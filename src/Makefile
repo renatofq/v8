@@ -27,7 +27,7 @@ endif
 
 CFLAGS += -fPIC
 LDFLAGS += -shared
-LIBS += -pthread -lm -L$(V8_ROOT)/vendor/dist/lib -llua
+LIBS += -lm -L$(V8_ROOT)/vendor/dist/lib -llua
 
 
 all: target
