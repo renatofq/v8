@@ -28,9 +28,11 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/signalfd.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 
 struct v8_t
 {
@@ -42,6 +44,8 @@ struct v8_t
 	const V8Action * actions;
 };
 
+
+/* static int v8_daemonize(void); */
 
 static int v8_init_socket(V8 * v8);
 static int v8_init_signals(void);
@@ -64,6 +68,8 @@ static const V8 * g_v8 = NULL;
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
+	/* v8_daemonize(); */
+
 	V8 * v8 = malloc(sizeof(V8));
 
 	if (v8 != NULL)
@@ -132,6 +138,35 @@ int v8_global_config_int(const char * name, int def)
 {
 	return v8_config_int(g_v8->config, name, def);
 }
+
+/* static int v8_daemonize(void) */
+/* { */
+/* 	pid_t pid; */
+/* 	struct sigaction sa; */
+
+/* 	umask(0); */
+
+/* 	pid = fork(); */
+/* 	if (pid < 0) */
+/* 	{ */
+/* 		v8_log_error("Unable to fork process: %d", errno); */
+/* 	} */
+/* 	else if (pid != 0) */
+/* 	{ */
+/* 		exit(0); */
+/* 	} */
+
+/* 	setsid(); */
+
+/* 	sa.sa_handler = SIG_IGN; */
+/* 	sigemptyset(&sa.sa_mask); */
+/* 	sa.sa_flags = 0; */
+/* 	if (sigaction(SIGHUP, &sa, NULL) < 0) */
+/* 	{ */
+/* 		v8_log_error("Unable to ignore SIGHUP"); */
+/* 	} */
+
+/* } */
 
 
 static int v8_init_socket(V8 * v8)

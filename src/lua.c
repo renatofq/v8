@@ -252,6 +252,8 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 		goto error_cleanup;
 	}
 
+	/* TODO: Create directory tree */
+
 	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
 	snprintf(lua_file, V8_LUA_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
 	         file_stat.st_mtime, file);
@@ -277,7 +279,6 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 static int v8_lua_gen_file(const char * ifile, const char * ofile)
 {
 	FILE * inf = fopen(ifile, "r");
-	/* FIXME: Create the directory tree */
 	FILE * outf = fopen(ofile, "w");
 	int ch;
 	V8ParserState state = V8_STATE_DEFAULT;
