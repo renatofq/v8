@@ -42,6 +42,8 @@ struct v8_t
 	V8Config * config;
 	V8Dispatcher * dispatcher;
 	const V8Action * actions;
+	void * context;
+	V8ContextInit * context_init;
 };
 
 
@@ -66,7 +68,8 @@ static void v8_handle_signal_error(int fd, void * data);
 static const V8 * g_v8 = NULL;
 
 
-V8 * v8_init(const char * configFile, const V8Action * actions)
+V8 * v8_init(const char * configFile, const V8Action * actions,
+             V8ContextInit * ctxinit)
 {
 	/* v8_daemonize(); */
 
@@ -84,6 +87,8 @@ V8 * v8_init(const char * configFile, const V8Action * actions)
 		                                   "warning"));
 		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
 		v8->dispatcher = v8_dispatcher_create();
+		v8->context = NULL;
+		v8->context_init = ctxinit;
 
 		g_v8 = v8;
 	}
@@ -128,6 +133,10 @@ void * v8_malloc(size_t size)
 	return malloc(size);
 }
 
+void * v8_context(void)
+{
+	return g_v8->context;
+}
 
 const char * v8_global_config_str(const char * name, const char * def)
 {
@@ -348,6 +357,11 @@ static int v8_request_handler(V8 * v8, int sock)
 	}
 	method = v8_request_method(request);
 	route = v8_request_route(request);
+
+	if (v8->context_init != NULL)
+	{
+		v8->context = v8->context_init();
+	}
 
 	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
 

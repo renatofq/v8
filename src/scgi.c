@@ -80,7 +80,8 @@ int v8_scgi_request_read(int fd, V8Request * request)
 
 
 	v8_scgi_parse_query(request);
-	v8_scgi_parse_kvstr(v8_strmap_value(request->header, "COOKIE"), ';');
+
+	request->cookies = v8_scgi_parse_kvstr(v8_strmap_value(request->header, "HTTP_COOKIE"), ';');
 
  cleanup:
 	free(buffer);
@@ -152,7 +153,7 @@ static void v8_scgi_parse_header(V8Map * header, const char * buffer, int size)
 		value = buffer + i;
 		i += strlen(buffer + i) + 1;
 
-		//v8_log_debug("SCGI HEADER: %s -> %s", key, value);
+		v8_log_debug("SCGI HEADER: %s -> %s", key, value);
 		v8_strmap_insert(header, key, value);
 	}
 }
@@ -347,6 +348,10 @@ static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep)
 			v8_scgi_add_pair(map, kvstr);
 			++str;
 			kvstr = str;
+		}
+		else
+		{
+			break;
 		}
 	}
 
