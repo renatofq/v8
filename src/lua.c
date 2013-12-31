@@ -66,6 +66,8 @@ static int v8_lua_table_at(lua_State * s);
 static int v8_lua_table_nrows(lua_State * s);
 static int v8_lua_table_ncols(lua_State * s);
 
+static void v8_lua_strchrep(char * str, char a, char b);
+
 static luaL_Reg v8_lua_table_methods[] = {
 	{"__gc", v8_lua_table_destroy},
 	{"__tostring", v8_lua_table_tostring},
@@ -236,6 +238,7 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 	struct stat file_stat;
 	const char * tmp_dir  = NULL;
 	char templ_file[V8_LUA_MAX_PATH];
+	char * strbuf = NULL;
 
 	if (file == NULL || lua_file == NULL)
 	{
@@ -254,9 +257,12 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 
 	/* TODO: Create directory tree */
 
+	strbuf = strdup(file);
+	v8_lua_strchrep(strbuf, '/', '!');
+
 	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
 	snprintf(lua_file, V8_LUA_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
-	         file_stat.st_mtime, file);
+	         file_stat.st_mtime, strbuf);
 
 	if (access(lua_file, F_OK | R_OK) != 0)
 	{
@@ -475,6 +481,19 @@ static int v8_lua_table_ncols(lua_State * s)
 	lua_pushnumber(s, self->ncols(self->data));
 
 	return 1;
+}
+
+static void v8_lua_strchrep(char * str, char a, char b)
+{
+	while (*str != '\0')
+	{
+		if (*str == a)
+		{
+			*str = b;
+		}
+
+		++str;
+	}
 }
 
 #undef V8_LUA_MAX_PATH

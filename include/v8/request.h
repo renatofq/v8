@@ -37,6 +37,7 @@ typedef struct v8_request_t
 	char * route;
 	V8Map * header;
 	V8Map * params;
+	V8Map * cookies;
 	int body_size;
 	char * body;
 } V8Request;
@@ -49,6 +50,8 @@ void v8_request_destroy(V8Request * request);
 const char * v8_request_param(const V8Request * request, const char * param);
 
 const char * v8_request_header(const V8Request * request, const char * header);
+
+const char * v8_request_cookie(const V8Request * request, const char * cookie);
 
 V8RequestMethod v8_request_method(const V8Request * request);
 

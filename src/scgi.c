@@ -34,8 +34,9 @@ static int v8_scgi_read_body(int fd, V8Request * request);
 static void v8_scgi_fill_method(V8Request * request);
 static void v8_scgi_fill_route(V8Request * request);
 static void v8_scgi_parse_query(V8Request * request);
-static void v8_scgi_split_params(V8Request * request,  char * query);
-static void v8_scgi_add_param(V8Request * request, char * param);
+static void v8_scgi_add_pair(V8Map * map, char * param);
+static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep);
+static V8Map * v8_scgi_parse_kvstr(const char * kvstr, char sep);
 
 int v8_scgi_request_read(int fd, V8Request * request)
 {
@@ -76,7 +77,10 @@ int v8_scgi_request_read(int fd, V8Request * request)
 
 	v8_scgi_fill_method(request);
 	v8_scgi_fill_route(request);
+
+
 	v8_scgi_parse_query(request);
+	v8_scgi_parse_kvstr(v8_strmap_value(request->header, "COOKIE"), ';');
 
  cleanup:
 	free(buffer);
@@ -297,28 +301,7 @@ static void v8_scgi_decode_url(const char * src, char * dest)
 
 }
 
-static void v8_scgi_split_params(V8Request * request,  char * query)
-{
-	char * str  = NULL;
-
-	str  = query;
-	while(str != NULL)
-	{
-
-		str = strchr(str, '&');
-		if (str != NULL)
-		{
-			*str = '\0';
-			v8_scgi_add_param(request, query);
-			++str;
-			query = str;
-		}
-	}
-
-	v8_scgi_add_param(request, query);
-}
-
-static void v8_scgi_add_param(V8Request * request, char * param)
+static void v8_scgi_add_pair(V8Map * map, char * param)
 {
 	char * str;
 
@@ -336,19 +319,47 @@ static void v8_scgi_add_param(V8Request * request, char * param)
 	*str = '\0';
 	++str;
 
-	v8_strmap_insert(request->params, param, str);
+	v8_strmap_insert(map, param, str);
 }
+
+static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep)
+{
+	V8Map * map = NULL;
+	char * str  = NULL;
+
+	map = v8_strmap_create();
+	if (map == NULL)
+	{
+		return NULL;
+	}
+
+	while(*kvstr != '\0')
+	{
+		while (isblank(*kvstr))
+		{
+			++kvstr;
+		}
+
+		str = strchr(kvstr, sep);
+		if (str != NULL)
+		{
+			*str = '\0';
+			v8_scgi_add_pair(map, kvstr);
+			++str;
+			kvstr = str;
+		}
+	}
+
+	v8_scgi_add_pair(map, kvstr);
+
+	return map;
+}
+
 
 static void v8_scgi_parse_query(V8Request * request)
 {
 	const char * query;
 	char * buffer = NULL;
-	int len = 0;
-
-	if (request == NULL)
-	{
-		goto cleanup;
-	}
 
 	if (request->method != V8_METHOD_POST)
 	{
@@ -364,13 +375,7 @@ static void v8_scgi_parse_query(V8Request * request)
 		goto cleanup;
 	}
 
-	len = strlen(query);
-	if (len == 0)
-	{
-		goto cleanup;
-	}
-
-	buffer = malloc(len + 1);
+	buffer = strdup(query);
 	if (buffer == NULL)
 	{
 		v8_log_error("error parsing params");
@@ -378,11 +383,40 @@ static void v8_scgi_parse_query(V8Request * request)
 	}
 
 	v8_scgi_decode_url(query, buffer);
-	v8_scgi_split_params(request, buffer);
+	request->params = v8_scgi_parse_kvstr(buffer, '&');
 
  cleanup:
 	if (buffer != NULL)
 	{
 		free(buffer);
 	}
+}
+
+
+static V8Map * v8_scgi_parse_kvstr(const char * kvstr, char sep)
+{
+	char * buffer = NULL;
+	V8Map * map = NULL;
+
+	if (kvstr == NULL)
+	{
+		goto cleanup;
+	}
+
+	buffer = strdup(kvstr);
+	if (buffer == NULL)
+	{
+		v8_log_error("error parsing kvstr: %s", kvstr);
+		goto cleanup;
+	}
+
+	map = v8_scgi_split_kvstr(buffer, sep);
+
+ cleanup:
+	if (buffer != NULL)
+	{
+		free(buffer);
+	}
+
+	return map;
 }

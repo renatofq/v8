@@ -335,6 +335,7 @@ static int v8_request_handler(V8 * v8, int sock)
 	V8Request * request = v8_request_create();
 	V8Response * response = v8_response_create(request, sock);
 	V8RequestMethod method = V8_METHOD_UNKNOWN;
+	V8Handler * filter_handler = NULL;
 	const char * route;
 	int i = 0;
 	int ret = 0;
@@ -356,11 +357,18 @@ static int v8_request_handler(V8 * v8, int sock)
 		    && actions[i].route != NULL
 		    && strcmp(route + v8->base_size, actions[i].route) == 0)
 		{
-			if (actions[i].filter == NULL || actions[i].filter(request))
+			if (actions[i].filter != NULL)
 			{
-				actions[i].handler(request, response);
-				break;
+				filter_handler = actions[i].filter(request);
+				if (filter_handler != NULL)
+				{
+					filter_handler(request, response);
+					break;
+				}
 			}
+
+			actions[i].handler(request, response);
+				break;
 		}
 	}
 
