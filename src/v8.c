@@ -68,6 +68,7 @@ static const V8 * g_v8 = NULL;
 
 V8 * v8_init(const char * configFile, const V8Action * actions)
 {
+
 	/* v8_daemonize(); */
 
 	V8 * v8 = malloc(sizeof(V8));
@@ -143,6 +144,7 @@ int v8_global_config_int(const char * name, int def)
 /* { */
 /* 	pid_t pid; */
 /* 	struct sigaction sa; */
+/* 	int fd0, fd1, fd2; */
 
 /* 	umask(0); */
 
@@ -166,6 +168,35 @@ int v8_global_config_int(const char * name, int def)
 /* 		v8_log_error("Unable to ignore SIGHUP"); */
 /* 	} */
 
+/* 	pid = fork(); */
+/* 	if (pid < 0) */
+/* 	{ */
+/* 		v8_log_error("Unable to double fork: %d", errno); */
+/* 	} */
+/* 	else if (pid != 0) */
+/* 	{ */
+/* 		exit(0); */
+/* 	} */
+
+/* 	if (chdir("/") < 0) */
+/* 	{ */
+/* 		v8_log_error("Unable to change directory to root: %d", errno); */
+/* 	} */
+
+/* 	close(STDIN_FILENO); */
+/* 	close(STDOUT_FILENO); */
+/* 	close(STDERR_FILENO); */
+
+/* 	fd0 = open("/dev/null", O_RDWR); */
+/* 	fd1 = dup(0); */
+/* 	fd2 = dup(0); */
+
+/* 	if (fd0 != 0 || fd1 != 1 || fd2 != 2) */
+/* 	{ */
+/* 		v8_log_error("Unexpected file descriptors %d %d %d", fd0, fd1, fd2); */
+/* 	} */
+
+/* 	return 0; */
 /* } */
 
 
