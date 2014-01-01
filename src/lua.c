@@ -63,6 +63,7 @@ static V8Table * v8_lua_table_self(lua_State * s);
 static int v8_lua_table_destroy(lua_State *s);
 static int v8_lua_table_tostring(lua_State * s);
 static int v8_lua_table_at(lua_State * s);
+static int v8_lua_table_atname(lua_State * s);
 static int v8_lua_table_nrows(lua_State * s);
 static int v8_lua_table_ncols(lua_State * s);
 
@@ -72,6 +73,7 @@ static luaL_Reg v8_lua_table_methods[] = {
 	{"__gc", v8_lua_table_destroy},
 	{"__tostring", v8_lua_table_tostring},
 	{"at", v8_lua_table_at},
+	{"atname", v8_lua_table_atname},
 	{"ncols", v8_lua_table_ncols},
 	{"nrows", v8_lua_table_nrows},
 	{NULL,  NULL}
@@ -464,6 +466,21 @@ static int v8_lua_table_at(lua_State * s)
 
 	return 1;
 }
+
+static int v8_lua_table_atname(lua_State * s)
+{
+	V8Table * self = v8_lua_table_self(s);
+
+	long i = (long) lua_tonumber(s, 2);
+	const char * name = lua_tostring(s, 3);
+
+	const char * value = self->atname(self->data, i-1, name);
+
+	lua_pushstring(s, value);
+
+	return 1;
+}
+
 
 static int v8_lua_table_nrows(lua_State * s)
 {

@@ -21,6 +21,7 @@ typedef struct v8_table_t
 	void * data;
 
 	const char * (*at)(const void * data, long i, long j);
+	const char * (*atname)(const void * data, long i, const char * name);
 	long (*nrows) (const void * data);
 	long (*ncols) (const void * data);
 	void (*destroy) (void *data);

@@ -40,6 +40,7 @@ typedef struct v8_request_t
 	V8Map * cookies;
 	int body_size;
 	char * body;
+	void * context;
 } V8Request;
 
 

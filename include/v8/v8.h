@@ -22,6 +22,7 @@
 
 typedef struct v8_t V8;
 typedef void (V8Handler)(const V8Request *, V8Response *);
+typedef void * (V8ContextInit)(void);
 typedef V8Handler * (V8Filter)(const V8Request *);
 
 typedef struct v8_action_t
@@ -33,12 +34,15 @@ typedef struct v8_action_t
 } V8Action;
 
 
-V8 * v8_init(const char * configFile, const V8Action * actions);
+V8 * v8_init(const char * configFile, const V8Action * actions,
+             V8ContextInit * ctxinit);
 
 int v8_start(V8 * v8);
 
 
 void * v8_malloc(size_t size);
+
+void * v8_context(void);
 
 const char * v8_global_config_str(const char * name, const char * def);
 int v8_global_config_int(const char * name, int def);
