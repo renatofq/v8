@@ -252,6 +252,7 @@ static void v8_scgi_fill_method(V8Request * request)
 static void v8_scgi_fill_route(V8Request * request)
 {
 	const char * route = v8_strmap_value(request->header, "request_uri");
+	char * str = NULL;
 
 	if(route == NULL)
 	{
@@ -259,14 +260,18 @@ static void v8_scgi_fill_route(V8Request * request)
 		return;
 	}
 
-	request->route = malloc(strlen(route) + 1);
+	request->route = strdup(route);
 	if (request->route == NULL)
   {
 	  v8_log_error("Error while trying to set route");
 	  return;
   }
 
-	strcpy(request->route, route);
+	str = strchr(request->route, '?');
+	if (str != NULL)
+	{
+		*str = '\0';
+	}
 }
 
 static void v8_scgi_decode_url(const char * src, char * dest)

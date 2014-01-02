@@ -340,7 +340,7 @@ static int v8_lua_gen_file(const char * ifile, const char * ofile)
 			}
 			else
 			{
-				fprintf(outf, "\n]==])\n");
+				fprintf(outf, "]==])\n");
 				state = V8_STATE_LUA;
 			}
 			break;
