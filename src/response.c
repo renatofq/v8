@@ -190,9 +190,14 @@ V8ResponseStatus v8_response_status(V8Response * response)
 void v8_response_add_header(V8Response * response, const char * name,
                             const char * value)
 {
+	const char * header = NULL;
 	if (response != NULL)
 	{
-		v8_strmap_insert(response->header, name, value);
+		header = v8_strmap_value(response->header, name);
+		if (header == NULL)
+		{
+			v8_strmap_insert(response->header, name, value);
+		}
 	}
 }
 
