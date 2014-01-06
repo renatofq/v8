@@ -40,6 +40,7 @@ struct v8_response_t
 
 
 static const char * v8_response_status_phrase(int status);
+static void v8_response_render(V8Response * response, const char * file);
 
 V8Response * v8_response_create(V8Request * request, int fd)
 {
@@ -216,17 +217,32 @@ void v8_response_ok(V8Response * response, const char * file)
 		return;
 	}
 
+	v8_response_set_status(response, V8_STATUS_OK);
+	v8_response_render(response, file);
+}
+
+void v8_response_error(V8Response * response, const char * file)
+{
+	if (response == NULL)
+	{
+		return;
+	}
+
+	v8_response_set_status(response, V8_STATUS_INTERNAL_SERVER_ERROR);
+	v8_response_render(response, file);
+}
+
+static void v8_response_render(V8Response * response, const char * file)
+{
 	if (response->view == NULL)
 	{
 		response->view = v8_view_create(response->body, response->request->params);
 	}
 
-	v8_response_set_status(response, V8_STATUS_OK);
-	v8_response_add_header(response, "Content-Type", "text/html");
 
+	v8_response_add_header(response, "Content-Type", "text/html");
 	v8_view_render(response->view, file);
 }
-
 
 static const char * v8_response_status_phrase(int status)
 {
