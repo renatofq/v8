@@ -322,10 +322,17 @@ static void v8_scgi_add_pair(V8Map * map, char * param)
 		return;
 	}
 
-	*str = '\0';
-	++str;
+	if (strlen(str) > 0)
+	{
+		*str = '\0';
+		++str;
+		v8_strmap_insert(map, param, str);
+	}
+	else
+	{
+		v8_strmap_insert(map, param, "");
+	}
 
-	v8_strmap_insert(map, param, str);
 }
 
 static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep)
