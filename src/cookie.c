@@ -106,13 +106,13 @@ int v8_cookie_print(const V8Cookie * cookie, char * buffer, long size)
 	             v8_strmap_value(cookie->map, cookie->name));
 
 	str = v8_cookie_domain(cookie);
-	if (str != NULL && i > 0)
+	if (strlen(str) > 0 && i > 0)
 	{
 		i += snprintf(buffer + i, size - i, "; Domain=%s", str);
 	}
 
 	str = v8_cookie_path(cookie);
-	if (str != NULL && i > 0)
+	if (strlen(str) > 0 && i > 0)
 	{
 		i += snprintf(buffer + i, size - i, "; Path=%s", str);
 	}

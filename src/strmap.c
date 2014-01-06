@@ -53,7 +53,7 @@ const char * v8_strmap_value(const V8Map * map,  const char * key)
 
 	if (pair == NULL)
 	{
-		return NULL;
+		return "";
 	}
 
 	return pair->value;
@@ -65,7 +65,7 @@ const char * v8_strmap_iterator_key(const V8MapIterator * it)
 
 	if (pair == NULL)
   {
-	  return NULL;
+	  return "";
   }
 	else
 	{
@@ -79,7 +79,7 @@ const char * v8_strmap_iterator_value(const V8MapIterator * it)
 
 	if (pair == NULL)
 	{
-		return NULL;
+		return "";
 	}
 	else
 	{

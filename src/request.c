@@ -79,24 +79,13 @@ void v8_request_destroy(V8Request * request)
 
 const char * v8_request_param(const V8Request * request, const char * param)
 {
-	const char * ret;
-
 	if (request == NULL)
 	{
-		return "";
+		return NULL;
 	}
 	else
 	{
-		ret = v8_strmap_value(request->params, param);
-
-		if (ret == NULL)
-		{
-			return "";
-		}
-		else
-		{
-			return ret;
-		}
+		return v8_strmap_value(request->params, param);
 	}
 }
 

@@ -194,7 +194,7 @@ void v8_response_add_header(V8Response * response, const char * name,
 	if (response != NULL)
 	{
 		header = v8_strmap_value(response->header, name);
-		if (header == NULL)
+		if (strlen(header) == 0)
 		{
 			v8_strmap_insert(response->header, name, value);
 		}
@@ -214,6 +214,11 @@ void v8_response_ok(V8Response * response, const char * file)
 	if (response == NULL)
 	{
 		return;
+	}
+
+	if (response->view == NULL)
+	{
+		response->view = v8_view_create(response->body, response->request->params);
 	}
 
 	v8_response_set_status(response, V8_STATUS_OK);
