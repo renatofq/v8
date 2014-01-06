@@ -288,8 +288,18 @@ static int v8_lua_gen_file(const char * ifile, const char * ofile)
 {
 	FILE * inf = fopen(ifile, "r");
 	FILE * outf = fopen(ofile, "w");
-	int ch;
 	V8ParserState state = V8_STATE_DEFAULT;
+	int ch;
+	int ret = 0;
+
+
+	/* FIXME: Handler fopen error */
+	if (outf == NULL || inf == NULL)
+	{
+		v8_log_error("Fail to open script files: %m");
+		ret = -1;
+		goto cleanup;
+	}
 
 	for (ch = fgetc(inf); ch != EOF; ch = fgetc(inf))
 	{
@@ -419,10 +429,11 @@ static int v8_lua_gen_file(const char * ifile, const char * ofile)
 		fprintf(outf, "\n]==])");
 	}
 
-
+ cleanup:
 	fclose(inf);
 	fclose(outf);
-	return 0;
+
+	return ret;
 }
 
 
