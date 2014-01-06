@@ -322,7 +322,7 @@ static void v8_scgi_add_pair(V8Map * map, char * param)
 		return;
 	}
 
-	if (strlen(str) > 0)
+	if (strlen(str) > 1)
 	{
 		*str = '\0';
 		++str;
@@ -330,6 +330,7 @@ static void v8_scgi_add_pair(V8Map * map, char * param)
 	}
 	else
 	{
+		*str = '\0';
 		v8_strmap_insert(map, param, "");
 	}
 
