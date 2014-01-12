@@ -17,12 +17,12 @@
 #include <v8/log.h>
 #include <v8/dispatcher.h>
 #include <v8/scgi.h>
-#include <v8/config.h>
 #include <v8/list.h>
 #include <v8/job.h>
 
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
@@ -32,22 +32,19 @@
 #include <sys/socket.h>
 #include <sys/signalfd.h>
 #include <sys/wait.h>
-#include <sys/resource.h>
 
 struct v8_t
 {
-	int sock;
+	int sockfd;
 	int sigfd;
 	int base_size;
 	V8Config * config;
 	V8Dispatcher * dispatcher;
 	const V8Action * actions;
-	void * context;
-	V8ContextInit * context_init;
+	void * app_data;
+	V8AppInitializer * app_init;
 };
 
-
-/* static int v8_daemonize(void); */
 
 static int v8_init_socket(V8 * v8);
 static int v8_init_signals(void);
@@ -68,28 +65,25 @@ static void v8_handle_signal_error(int fd, void * data);
 static const V8 * g_v8 = NULL;
 
 
-V8 * v8_init(const char * configFile, const V8Action * actions,
-             V8ContextInit * ctxinit)
+V8 * v8_init(V8Config * config, const V8Action * actions,
+             V8AppInitializer * appinit)
 {
-
-	/* v8_daemonize(); */
-
 	V8 * v8 = malloc(sizeof(V8));
 
 	if (v8 != NULL)
 	{
 		/* FIXME: Handler errors */
 		v8->actions = actions;
-		v8->config = v8_config_create_from_file(configFile);
-		v8->sock = v8_init_socket(v8);
+		v8->config = config;
+		v8->sockfd = v8_init_socket(v8);
 		v8->sigfd = v8_init_signals();
 
 		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
 		                                   "warning"));
 		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
 		v8->dispatcher = v8_dispatcher_create();
-		v8->context = NULL;
-		v8->context_init = ctxinit;
+		v8->app_data = NULL;
+		v8->app_init = appinit;
 
 		g_v8 = v8;
 	}
@@ -106,7 +100,7 @@ int v8_start(V8 * v8)
 	V8Listener sig_listener;
 
 	v8_connection_listener_init(v8, &conn_listener);
-	v8_dispatcher_add_listener(v8->dispatcher, v8->sock, &conn_listener);
+	v8_dispatcher_add_listener(v8->dispatcher, v8->sockfd, &conn_listener);
 
 	v8_signal_listener_init(v8, &sig_listener);
 	v8_dispatcher_add_listener(v8->dispatcher, v8->sigfd, &sig_listener);
@@ -134,9 +128,9 @@ void * v8_malloc(size_t size)
 	return malloc(size);
 }
 
-void * v8_context(void)
+void * v8_app_data(void)
 {
-	return g_v8->context;
+	return g_v8->app_data;
 }
 
 const char * v8_global_config_str(const char * name, const char * def)
@@ -149,70 +143,10 @@ int v8_global_config_int(const char * name, int def)
 	return v8_config_int(g_v8->config, name, def);
 }
 
-/* static int v8_daemonize(void) */
-/* { */
-/* 	pid_t pid; */
-/* 	struct sigaction sa; */
-/* 	int fd0, fd1, fd2; */
-
-/* 	umask(0); */
-
-/* 	pid = fork(); */
-/* 	if (pid < 0) */
-/* 	{ */
-/* 		v8_log_error("Unable to fork process: %d", errno); */
-/* 	} */
-/* 	else if (pid != 0) */
-/* 	{ */
-/* 		exit(0); */
-/* 	} */
-
-/* 	setsid(); */
-
-/* 	sa.sa_handler = SIG_IGN; */
-/* 	sigemptyset(&sa.sa_mask); */
-/* 	sa.sa_flags = 0; */
-/* 	if (sigaction(SIGHUP, &sa, NULL) < 0) */
-/* 	{ */
-/* 		v8_log_error("Unable to ignore SIGHUP"); */
-/* 	} */
-
-/* 	pid = fork(); */
-/* 	if (pid < 0) */
-/* 	{ */
-/* 		v8_log_error("Unable to double fork: %d", errno); */
-/* 	} */
-/* 	else if (pid != 0) */
-/* 	{ */
-/* 		exit(0); */
-/* 	} */
-
-/* 	if (chdir("/") < 0) */
-/* 	{ */
-/* 		v8_log_error("Unable to change directory to root: %d", errno); */
-/* 	} */
-
-/* 	close(STDIN_FILENO); */
-/* 	close(STDOUT_FILENO); */
-/* 	close(STDERR_FILENO); */
-
-/* 	fd0 = open("/dev/null", O_RDWR); */
-/* 	fd1 = dup(0); */
-/* 	fd2 = dup(0); */
-
-/* 	if (fd0 != 0 || fd1 != 1 || fd2 != 2) */
-/* 	{ */
-/* 		v8_log_error("Unexpected file descriptors %d %d %d", fd0, fd1, fd2); */
-/* 	} */
-
-/* 	return 0; */
-/* } */
-
 
 static int v8_init_socket(V8 * v8)
 {
 	int sock = -1;
-	int backlog = 0;
 	const char * node = NULL;
 	const char * port = NULL;
 	struct addrinfo hints;
@@ -257,8 +191,7 @@ static int v8_init_socket(V8 * v8)
 
 	freeaddrinfo(res);
 
-	backlog = v8_config_int(v8->config, "v8.backlog", 1);
-	ret = listen(sock, backlog);
+	ret = listen(sock, SOMAXCONN);
 	if (ret == -1)
 	{
 		v8_log_error("Failed to listen socket");
@@ -295,6 +228,9 @@ static int v8_init_signals(void)
 	/* Child signalization */
 	sigaddset(&mask, SIGCHLD);
 
+	/* Reload configuration */
+	sigaddset(&mask, SIGHUP);
+
 	ret = sigprocmask(SIG_BLOCK, &mask, NULL);
 	if (ret == -1)
 	{
@@ -302,7 +238,7 @@ static int v8_init_signals(void)
 		return -1;
 	}
 
-	sigfd = signalfd(-1, &mask, 0);
+	sigfd = signalfd(-1, &mask, SFD_NONBLOCK);
 	if (sigfd == -1)
 	{
 		v8_log_error("Unable to create signalfd: %d", errno);
@@ -344,8 +280,8 @@ static void v8_child_exec(V8 * v8, int sock)
 	/* Closing parent's fds */
 	close(v8->sigfd);
 	v8->sigfd = -1;
-	close(v8->sock);
-	v8->sock = -1;
+	close(v8->sockfd);
+	v8->sockfd = -1;
 
 	v8_dispatcher_destroy(v8->dispatcher);
 	v8->dispatcher = NULL;
@@ -356,6 +292,7 @@ static void v8_child_exec(V8 * v8, int sock)
 	sigaddset(&mask, SIGQUIT);
 	sigaddset(&mask, SIGTERM);
 	sigaddset(&mask, SIGCHLD);
+	sigaddset(&mask, SIGHUP);
 
 	ret = sigprocmask(SIG_UNBLOCK, &mask, NULL);
 	if (ret == -1)
@@ -366,7 +303,6 @@ static void v8_child_exec(V8 * v8, int sock)
 
 
 	exit(v8_request_handler(v8, sock));
-
 }
 
 static int v8_request_handler(V8 * v8, int sock)
@@ -389,9 +325,9 @@ static int v8_request_handler(V8 * v8, int sock)
 	method = v8_request_method(request);
 	route = v8_request_route(request);
 
-	if (v8->context_init != NULL)
+	if (v8->app_init != NULL)
 	{
-		v8->context = v8->context_init();
+		v8->app_data = v8->app_init();
 	}
 
 	v8_log_debug("Request receiveid -> Method: %d Path: %s", method, route + v8->base_size);
@@ -468,7 +404,7 @@ static void v8_handle_connection(int fd, void * data)
 	int newsock;
 	V8 * v8 = data;
 
-	newsock = accept(v8->sock, NULL, NULL);
+	newsock = accept(v8->sockfd, NULL, NULL);
 
 	if (newsock != -1)
 	{
@@ -523,6 +459,10 @@ static void v8_handle_signal(int fd, void * data)
 			v8_log_error("Failed when waiting for childs: %d", errno);
 		}
 
+		break;
+	case SIGHUP:
+		/* TODO: Implement config file reloading */
+		v8_log_info("Config file reload not inplemented");
 		break;
 	default:
 		v8_log_error("Unexpected signal arrived: %d", siginfo.ssi_signo);

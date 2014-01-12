@@ -29,11 +29,11 @@
 */
 typedef enum v8_log_level_e
 {
-	V8_LOG_NONE = 0,
-	V8_LOG_ERROR,
-	V8_LOG_WARN,
-	V8_LOG_INFO,
-	V8_LOG_DEBUG
+	V8_LOG_NONE = -1,
+	V8_LOG_ERROR = 3,
+	V8_LOG_WARN = 4,
+	V8_LOG_INFO = 6,
+	V8_LOG_DEBUG = 7
 } V8LogLevel;
 
 /*!
