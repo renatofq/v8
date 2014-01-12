@@ -166,7 +166,7 @@ static int v8_scgi_read_body(int fd, V8Request * request)
 	int read_size = 0;
 
 	length_str = v8_strmap_value(request->header, "CONTENT_LENGTH");
-	if (length_str == NULL)
+	if (strlen(length_str) == 0)
 	{
 		v8_log_error("Content length undefined");
 		return -1;
@@ -202,7 +202,7 @@ static void v8_scgi_fill_method(V8Request * request)
 {
 	const char * method_str = v8_strmap_value(request->header, "REQUEST_METHOD");
 
-	if(method_str == NULL)
+	if(strlen(method_str) == 0)
 	{
 		v8_log_error("Method is unknown");
 		request->method = V8_METHOD_UNKNOWN;
@@ -252,21 +252,26 @@ static void v8_scgi_fill_method(V8Request * request)
 static void v8_scgi_fill_route(V8Request * request)
 {
 	const char * route = v8_strmap_value(request->header, "request_uri");
+	char * str = NULL;
 
-	if(route == NULL)
+	if(strlen(route) == 0)
 	{
 		v8_log_error("request_uri is not defined");
 		return;
 	}
 
-	request->route = malloc(strlen(route) + 1);
+	request->route = strdup(route);
 	if (request->route == NULL)
   {
 	  v8_log_error("Error while trying to set route");
 	  return;
   }
 
-	strcpy(request->route, route);
+	str = strchr(request->route, '?');
+	if (str != NULL)
+	{
+		*str = '\0';
+	}
 }
 
 static void v8_scgi_decode_url(const char * src, char * dest)
@@ -317,10 +322,18 @@ static void v8_scgi_add_pair(V8Map * map, char * param)
 		return;
 	}
 
-	*str = '\0';
-	++str;
+	if (strlen(str) > 1)
+	{
+		*str = '\0';
+		++str;
+		v8_strmap_insert(map, param, str);
+	}
+	else
+	{
+		*str = '\0';
+		v8_strmap_insert(map, param, "");
+	}
 
-	v8_strmap_insert(map, param, str);
 }
 
 static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep)
@@ -402,11 +415,6 @@ static V8Map * v8_scgi_parse_kvstr(const char * kvstr, char sep)
 {
 	char * buffer = NULL;
 	V8Map * map = NULL;
-
-	if (kvstr == NULL)
-	{
-		goto cleanup;
-	}
 
 	buffer = strdup(kvstr);
 	if (buffer == NULL)

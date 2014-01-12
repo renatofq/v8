@@ -40,6 +40,7 @@ struct v8_response_t
 
 
 static const char * v8_response_status_phrase(int status);
+static void v8_response_render(V8Response * response, const char * file);
 
 V8Response * v8_response_create(V8Request * request, int fd)
 {
@@ -190,9 +191,14 @@ V8ResponseStatus v8_response_status(V8Response * response)
 void v8_response_add_header(V8Response * response, const char * name,
                             const char * value)
 {
+	const char * header = NULL;
 	if (response != NULL)
 	{
-		v8_strmap_insert(response->header, name, value);
+		header = v8_strmap_value(response->header, name);
+		if (strlen(header) == 0)
+		{
+			v8_strmap_insert(response->header, name, value);
+		}
 	}
 }
 
@@ -212,11 +218,31 @@ void v8_response_ok(V8Response * response, const char * file)
 	}
 
 	v8_response_set_status(response, V8_STATUS_OK);
-	v8_response_add_header(response, "Content-Type", "text/html");
-
-	v8_view_render(response->view, file);
+	v8_response_render(response, file);
 }
 
+void v8_response_error(V8Response * response, const char * file)
+{
+	if (response == NULL)
+	{
+		return;
+	}
+
+	v8_response_set_status(response, V8_STATUS_INTERNAL_SERVER_ERROR);
+	v8_response_render(response, file);
+}
+
+static void v8_response_render(V8Response * response, const char * file)
+{
+	if (response->view == NULL)
+	{
+		response->view = v8_view_create(response->body, response->request->params);
+	}
+
+
+	v8_response_add_header(response, "Content-Type", "text/html");
+	v8_view_render(response->view, file);
+}
 
 static const char * v8_response_status_phrase(int status)
 {
