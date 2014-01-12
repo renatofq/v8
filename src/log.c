@@ -68,7 +68,7 @@ void v8_log(V8LogLevel level, const char * fmt, ...)
 #endif
 
 
-	fprintf(stderr, prefix);
+	fprintf(stderr, "%s", prefix);
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
