@@ -221,6 +221,18 @@ void v8_response_ok(V8Response * response, const char * file)
 	v8_response_render(response, file);
 }
 
+void v8_response_redirect(V8Response * response, const char * path)
+{
+	if (response == NULL)
+	{
+		return;
+	}
+
+	v8_response_set_status(response, V8_STATUS_SEE_OTHER);
+	v8_response_add_header(response, "Location", path);
+}
+
+
 void v8_response_error(V8Response * response, const char * file)
 {
 	if (response == NULL)
