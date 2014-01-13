@@ -48,6 +48,7 @@ struct v8_t
 
 static int v8_init_socket(V8 * v8);
 static int v8_init_signals(void);
+static int v8_set_nonblocking(int fd);
 
 static int v8_fork(V8 * v8, int sock);
 static void v8_child_exec(V8 * v8, int sock);
@@ -182,6 +183,12 @@ static int v8_init_socket(V8 * v8)
 		goto cleanup;
 	}
 
+	ret = v8_set_nonblocking(sock);
+	if (ret == -1)
+	{
+		goto cleanup;
+	}
+
 	/* Bind to the address */
 	ret = bind(sock, res->ai_addr, res->ai_addrlen);
 	if (ret == -1)
@@ -246,6 +253,28 @@ static int v8_init_signals(void)
 	}
 
 	return sigfd;
+}
+
+static int v8_set_nonblocking(int fd)
+{
+	int flags;
+
+	flags = fcntl(fd, F_GETFL, 0);
+
+	if(flags == -1)
+	{
+		v8_log_error("Failed to get fd flags");
+		return -1;
+	}
+
+	flags = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	if(flags == -1)
+	{
+		v8_log_error("Failed to set nonblock on fd");
+		return -1;
+	}
+
+	return 0;
 }
 
 static int v8_fork(V8 * v8, int sock)
@@ -404,20 +433,23 @@ static void v8_handle_connection(int fd, void * data)
 	int newsock;
 	V8 * v8 = data;
 
-	newsock = accept(v8->sockfd, NULL, NULL);
-
-	if (newsock != -1)
+	while (newsock != -1)
 	{
-		v8_log_debug("Connection accepted");
+		newsock = accept(v8->sockfd, NULL, NULL);
 
-		if (v8_fork(v8, newsock) != 0)
+		if (newsock != -1)
 		{
-			v8_log_error("Fail to fork process");
+			v8_log_debug("Connection accepted");
+
+			if (v8_fork(v8, newsock) != 0)
+			{
+				v8_log_error("Fail to fork process");
+			}
 		}
-	}
-	else
-	{
-		v8_log_error("Fail to accept connection");
+		else if (errno != EAGAIN)
+		{
+			v8_log_error("Fail to accept connection");
+		}
 	}
 
 }
@@ -435,43 +467,49 @@ static void v8_handle_signal(int fd, void * data)
 	pid_t pid;
 	struct signalfd_siginfo siginfo;
 
-	v8_log_debug("Reading events");
-	sz = read(v8->sigfd, &siginfo, sizeof(struct signalfd_siginfo));
-	if (sz != sizeof(struct signalfd_siginfo))
+	while (sz == sizeof(struct signalfd_siginfo))
 	{
-		v8_log_error("Unable to get signal info: %d", errno);
-		return;
-	}
-
-	switch (siginfo.ssi_signo)
-	{
-	case SIGINT:
-	case SIGQUIT:
-	case SIGTERM:
-		v8_log_info("Termination signal received");
-		v8_dispatcher_stop(v8->dispatcher);
-		break;
-	case SIGCHLD:
-		v8_log_debug("Child signaled");
-		while ((pid = waitpid(-1, &status, WNOHANG) > 0));
-
-		if (pid < 0)
+		sz = read(v8->sigfd, &siginfo, sizeof(struct signalfd_siginfo));
+		if (sz != sizeof(struct signalfd_siginfo))
 		{
-			v8_log_error("Failed when waiting for childs: %d", errno);
-		}
-		else if (pid == 0)
-		{
-			v8_log_debug("Child has not changed state");
+			if (errno != EAGAIN)
+			{
+				v8_log_error("Unable to get signal info: %d", errno);
+			}
+
+			break;
 		}
 
-		break;
-	case SIGHUP:
-		/* TODO: Implement config file reloading */
-		v8_log_info("Config file reload not inplemented");
-		break;
-	default:
-		v8_log_error("Unexpected signal arrived: %d", siginfo.ssi_signo);
-		break;
+		switch (siginfo.ssi_signo)
+		{
+		case SIGINT:
+		case SIGQUIT:
+		case SIGTERM:
+			v8_log_info("Termination signal received");
+			v8_dispatcher_stop(v8->dispatcher);
+			break;
+		case SIGCHLD:
+			v8_log_debug("Child signaled");
+			while ((pid = waitpid(-1, &status, WNOHANG) > 0));
+
+			if (pid < 0)
+			{
+				v8_log_error("Failed when waiting for childs: %d", errno);
+			}
+			else if (pid == 0)
+			{
+				v8_log_debug("Child has not changed state");
+			}
+
+			break;
+		case SIGHUP:
+			/* TODO: Implement config file reloading */
+			v8_log_info("Config file reload not inplemented");
+			break;
+		default:
+			v8_log_error("Unexpected signal arrived: %d", siginfo.ssi_signo);
+			break;
+		}
 	}
 }
 
