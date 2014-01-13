@@ -30,6 +30,7 @@ void v8_log(V8LogLevel level, const char * fmt, ...)
 		return;
 	}
 
+#ifdef V8_DEBUG
 	switch (level)
 	{
 	case V8_LOG_ERROR:
@@ -48,15 +49,31 @@ void v8_log(V8LogLevel level, const char * fmt, ...)
 		prefix = "";
 		break;
 	}
+#else
+	switch (level)
+	{
+	case V8_LOG_ERROR:
+		prefix = "<3>";
+		break;
+	case V8_LOG_WARN:
+		prefix = "<4>";
+		break;
+	case V8_LOG_INFO:
+		prefix = "<6>";
+		break;
+	default:
+		prefix = "<7>";
+		break;
+	}
+#endif
 
 
-	/* FIXME: logs can potentially be messed up due concurrency */
-	printf("%s", prefix);
+	fprintf(stderr, "%s", prefix);
 	va_start(args, fmt);
-	vprintf(fmt, args);
+	vfprintf(stderr, fmt, args);
 	va_end(args);
-	fflush(stdout);
-	printf("\n");
+	fprintf(stderr, "\n");
+	fflush(stderr);
 }
 
 

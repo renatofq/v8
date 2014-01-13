@@ -90,7 +90,7 @@ int main(int argc, char * argv[])
 		config = argv[1];
 	}
 
-	v8 = v8_init(config, actions);
+	v8 = v8_init(v8_config_create_from_file(config), actions, NULL);
 
 	v8_start(v8);
 

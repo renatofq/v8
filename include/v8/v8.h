@@ -16,13 +16,13 @@
 #ifndef V8_H
 #define V8_H
 
-#include <v8/log.h>
+#include <v8/config.h>
 #include <v8/request.h>
 #include <v8/response.h>
 
 typedef struct v8_t V8;
 typedef void (V8Handler)(const V8Request *, V8Response *);
-typedef void * (V8ContextInit)(void);
+typedef void * (V8AppInitializer)(void);
 typedef V8Handler * (V8Filter)(const V8Request *);
 
 typedef struct v8_action_t
@@ -34,15 +34,15 @@ typedef struct v8_action_t
 } V8Action;
 
 
-V8 * v8_init(const char * configFile, const V8Action * actions,
-             V8ContextInit * ctxinit);
+V8 * v8_init(V8Config * config, const V8Action * actions,
+             V8AppInitializer * appinit);
 
 int v8_start(V8 * v8);
 
 
 void * v8_malloc(size_t size);
 
-void * v8_context(void);
+void * v8_app_data(void);
 
 const char * v8_global_config_str(const char * name, const char * def);
 int v8_global_config_int(const char * name, int def);
