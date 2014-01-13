@@ -128,6 +128,7 @@ void v8_dispatcher_start(V8Dispatcher * dispatcher)
 
 	while (dispatcher->run)
 	{
+		v8_log_debug("Waiting events");
 		nfds = epoll_wait(dispatcher->epoll, events, V8_MAX_EVENTS, -1);
 		if (nfds == -1)
 		{

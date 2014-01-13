@@ -468,6 +468,7 @@ static void v8_handle_signal(int fd, void * data)
 	pid_t pid;
 	struct signalfd_siginfo siginfo;
 
+	v8_log_debug("Reading events");
 	sz = read(v8->sigfd, &siginfo, sizeof(struct signalfd_siginfo));
 	if (sz != sizeof(struct signalfd_siginfo))
 	{
@@ -490,6 +491,10 @@ static void v8_handle_signal(int fd, void * data)
 		if (pid < 0)
 		{
 			v8_log_error("Failed when waiting for childs: %d", errno);
+		}
+		else if (pid == 0)
+		{
+			v8_log_debug("Child has not changed state");
 		}
 
 		break;
