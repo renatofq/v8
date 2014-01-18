@@ -430,7 +430,7 @@ static void v8_signal_listener_init(V8 * v8, V8Listener * listener)
 
 static void v8_handle_connection(int fd, void * data)
 {
-	int newsock;
+	int newsock = 0;
 	V8 * v8 = data;
 
 	while (newsock != -1)
@@ -457,6 +457,7 @@ static void v8_handle_connection(int fd, void * data)
 static void v8_handle_socket_error(int fd, void * data)
 {
 	/* TODO: handle error */
+	v8_log_error("Error on connection listener %d", errno);
 }
 
 static void v8_handle_signal(int fd, void * data)
@@ -467,7 +468,7 @@ static void v8_handle_signal(int fd, void * data)
 	pid_t pid;
 	struct signalfd_siginfo siginfo;
 
-	while (sz == sizeof(struct signalfd_siginfo))
+	while (1)
 	{
 		sz = read(v8->sigfd, &siginfo, sizeof(struct signalfd_siginfo));
 		if (sz != sizeof(struct signalfd_siginfo))
@@ -515,5 +516,6 @@ static void v8_handle_signal(int fd, void * data)
 
 static void v8_handle_signal_error(int fd, void * data)
 {
+	v8_log_error("Error on signal handler %d", errno);
 	/* TODO: handle error */
 }
