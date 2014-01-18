@@ -73,6 +73,8 @@ void v8_response_destroy(V8Response * response);
 
 void v8_response_ok(V8Response * response, const char * file);
 
+void v8_response_redirect(V8Response * response, const char * path);
+
 void v8_response_error(V8Response * response, const char * file);
 
 void v8_response_send(V8Response * response);

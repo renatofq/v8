@@ -304,7 +304,7 @@ static void v8_scgi_decode_url(const char * src, char * dest)
 			break;
 		}
 	}
-
+	dest[j] = '\0';
 }
 
 static void v8_scgi_add_pair(V8Map * map, char * param)
@@ -322,18 +322,9 @@ static void v8_scgi_add_pair(V8Map * map, char * param)
 		return;
 	}
 
-	if (strlen(str) > 1)
-	{
-		*str = '\0';
-		++str;
-		v8_strmap_insert(map, param, str);
-	}
-	else
-	{
-		*str = '\0';
-		v8_strmap_insert(map, param, "");
-	}
-
+	*str = '\0';
+	++str;
+	v8_strmap_insert(map, param, str);
 }
 
 static V8Map * v8_scgi_split_kvstr(char * kvstr, char sep)
@@ -393,7 +384,7 @@ static void v8_scgi_parse_query(V8Request * request)
 		goto cleanup;
 	}
 
-	buffer = strdup(query);
+	buffer = malloc(strlen(query) + 1);
 	if (buffer == NULL)
 	{
 		v8_log_error("error parsing params");
