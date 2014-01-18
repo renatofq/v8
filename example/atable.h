@@ -1,5 +1,5 @@
 #ifndef V8_ATABLE_H
-#define V8_ATABLE
+#define V8_ATABLE_H
 
 #include <v8/table.h>
 

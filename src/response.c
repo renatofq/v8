@@ -111,8 +111,8 @@ void v8_response_send(V8Response * response)
 		return;
 	}
 
-	size = snprintf(form, V8_FORMATTER_SIZE, "%d %s", response->status,
-	                v8_response_status_phrase(response->status));
+	snprintf(form, V8_FORMATTER_SIZE, "%d %s", response->status,
+	         v8_response_status_phrase(response->status));
 	v8_strmap_insert(response->header, "Status", form);
 
 	snprintf(form, V8_FORMATTER_SIZE, "%d",

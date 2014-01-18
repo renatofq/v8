@@ -275,11 +275,13 @@ static int v8_lua_script_from_template(const char * file, char * lua_file)
 		}
 	}
 
+	free(strbuf);
 
 	return 0;
 
  error_cleanup:
 	strcpy(lua_file, "");
+	free(strbuf);
 	return -1;
 }
 
