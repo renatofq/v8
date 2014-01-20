@@ -79,9 +79,9 @@ V8 * v8_init(V8Config * config, const V8Action * actions,
 		v8->sockfd = v8_init_socket(v8);
 		v8->sigfd = v8_init_signals();
 
-		v8_log_level_str_set(v8_config_str(v8->config, "v8.log_level",
+		v8_log_level_str_set(v8_config_str(v8->config, "v8.log.level",
 		                                   "warning"));
-		v8->base_size = strlen(v8_config_str(v8->config, "v8.base_path", ""));
+		v8->base_size = strlen(v8_config_str(v8->config, "v8.baseurl", ""));
 		v8->dispatcher = v8_dispatcher_create();
 		v8->app_data = NULL;
 		v8->app_init = appinit;

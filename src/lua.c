@@ -21,17 +21,18 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <errno.h>
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include <lualib.h>
 #include <lauxlib.h>
 
-#define V8_LUA_MAX_PATH (1024)
+#define V8_MAX_PATH (1024)
 
 
 typedef enum v8_parser_state_t
@@ -54,10 +55,6 @@ static int v8_lua_include(lua_State * s);
 static int v8_lua_layout(lua_State * s);
 static int v8_lua_yield(lua_State * s);
 
-/* Fuctions that deal with template  translatio to pure lua code */
-static int v8_lua_script_from_template(const char * file, char * lua_file);
-static int v8_lua_gen_file(const char * ifile, const char * ofile);
-
 /* Implementation of V8Table type, usable from lua */
 static V8Table * v8_lua_table_self(lua_State * s);
 static int v8_lua_table_destroy(lua_State *s);
@@ -67,7 +64,10 @@ static int v8_lua_table_atname(lua_State * s);
 static int v8_lua_table_nrows(lua_State * s);
 static int v8_lua_table_ncols(lua_State * s);
 
-static void v8_lua_strchrep(char * str, char a, char b);
+/*  */
+static int v8_lua_script_file(const char * file, char * lua_file);
+static int v8_lua_gen_file(const char * tmpl_file, const char * lua_file);
+static void v8_strchrep(char * str, char a, char b);
 
 static luaL_Reg v8_lua_table_methods[] = {
 	{"__gc", v8_lua_table_destroy},
@@ -116,10 +116,10 @@ void v8_lua_destroy(V8Lua * lua)
 
 int v8_lua_eval_file(V8Lua * lua, const char * filename)
 {
+	char lua_file[V8_MAX_PATH];
 	int ret = 0;
-	char lua_file[V8_LUA_MAX_PATH];
 
-	ret = v8_lua_script_from_template(filename, lua_file);
+	ret = v8_lua_script_file(filename, lua_file);
 	if (ret != 0)
 	{
 		v8_log_error("Failed to generate script");
@@ -189,6 +189,85 @@ void v8_lua_push_table(V8Lua * lua, const char * name, const V8Map * map)
 	lua_setglobal(lua, name);
 }
 
+static int v8_lua_script_file(const char * file, char * lua_file)
+{
+	struct stat file_stat;
+	const char * v8dir  = NULL;
+	char templ_file[V8_MAX_PATH];
+	char outdir[V8_MAX_PATH];
+	char * strbuf = NULL;
+
+	if (file == NULL || lua_file == NULL)
+	{
+		return -1;
+	}
+
+	snprintf(templ_file, V8_MAX_PATH, "%s/%s",
+	         v8_global_config_str("v8.view.dir", "."), file);
+
+	if (access(templ_file, R_OK) != 0 || stat(templ_file,  &file_stat) != 0)
+	{
+		v8_log_error("Failed to access file %s", templ_file);
+		goto error_cleanup;
+	}
+
+	strbuf = strdup(file);
+	v8_strchrep(strbuf, '/', '!');
+
+	v8dir = v8_global_config_str("v8.dir", "/tmp/v8");
+	snprintf(outdir, V8_MAX_PATH, "%s/out", v8dir);
+	snprintf(lua_file, V8_MAX_PATH, "%s/%li_%s.lua", outdir,
+	         file_stat.st_mtime, strbuf);
+	free(strbuf);
+
+	if (access(lua_file, F_OK | R_OK) != 0)
+	{
+		if (access(outdir, W_OK | X_OK) != 0)
+		{
+			if (errno == ENOENT)
+			{
+				if (mkdir(outdir, S_IRWXU | S_IRGRP | S_IROTH) != 0)
+				{
+					v8_log_error("Cannot create output dir: %m");
+					goto error_cleanup;
+				}
+			}
+			else
+			{
+				v8_log_error("Cannot access output dir: %m");
+				goto error_cleanup;
+			}
+		}
+
+		if (v8_lua_gen_file(templ_file, lua_file) != 0)
+		{
+			v8_log_error("Failed to generate script file %s", lua_file);
+			goto error_cleanup;
+		}
+	}
+
+	return 0;
+
+ error_cleanup:
+	strcpy(lua_file, "");
+	free(strbuf);
+	return -1;
+}
+
+static void v8_strchrep(char * str, char a, char b)
+{
+	while (*str != '\0')
+	{
+		if (*str == a)
+		{
+			*str = b;
+		}
+
+		++str;
+	}
+}
+
+
 static int v8_lua_print(lua_State * s)
 {
 	V8Buffer * buffer = (V8Buffer *) lua_touserdata(s, lua_upvalueindex(1));
@@ -235,67 +314,15 @@ static int v8_lua_yield(lua_State * s)
   This function was originally based on lsplib::lsp_reader from luasp project
   see http://luasp.org
 */
-static int v8_lua_script_from_template(const char * file, char * lua_file)
+static int v8_lua_gen_file(const char * tmpl_file, const char * lua_file)
 {
-	struct stat file_stat;
-	const char * tmp_dir  = NULL;
-	char templ_file[V8_LUA_MAX_PATH];
-	char * strbuf = NULL;
-
-	if (file == NULL || lua_file == NULL)
-	{
-		return -1;
-	}
-
-	/* FIXME: These directory rules should be responsability of V8View */
-	snprintf(templ_file, V8_LUA_MAX_PATH, "%s/%s",
-	         v8_global_config_str("v8.view.dir", "."), file);
-
-	if (access(templ_file, R_OK) != 0 || stat(templ_file,  &file_stat) != 0)
-	{
-		v8_log_error("Failed to access file %s", templ_file);
-		goto error_cleanup;
-	}
-
-	/* TODO: Create directory tree */
-
-	strbuf = strdup(file);
-	v8_lua_strchrep(strbuf, '/', '!');
-
-	tmp_dir = v8_global_config_str("v8.view.tmp_dir", "/tmp/v8");
-	snprintf(lua_file, V8_LUA_MAX_PATH, "%s/%li_%s.lua", tmp_dir,
-	         file_stat.st_mtime, strbuf);
-
-	if (access(lua_file, F_OK | R_OK) != 0)
-	{
-		if (v8_lua_gen_file(templ_file, lua_file) != 0)
-		{
-			v8_log_error("Failed to generate script file %s", lua_file);
-			goto error_cleanup;
-		}
-	}
-
-	free(strbuf);
-
-	return 0;
-
- error_cleanup:
-	strcpy(lua_file, "");
-	free(strbuf);
-	return -1;
-}
-
-
-static int v8_lua_gen_file(const char * ifile, const char * ofile)
-{
-	FILE * inf = fopen(ifile, "r");
-	FILE * outf = fopen(ofile, "w");
+	FILE * inf = fopen(tmpl_file, "r");
+	FILE * outf = fopen(lua_file, "w");
 	V8ParserState state = V8_STATE_DEFAULT;
 	int ch;
 	int ret = 0;
 
 
-	/* FIXME: Handler fopen error */
 	if (outf == NULL || inf == NULL)
 	{
 		v8_log_error("Fail to open script files: %m");
@@ -432,8 +459,16 @@ static int v8_lua_gen_file(const char * ifile, const char * ofile)
 	}
 
  cleanup:
-	fclose(inf);
-	fclose(outf);
+	if (inf != NULL)
+	{
+		fclose(inf);
+		inf = NULL;
+	}
+	if (outf != NULL)
+	{
+		fclose(outf);
+		outf = NULL;
+	}
 
 	return ret;
 }
@@ -494,7 +529,6 @@ static int v8_lua_table_atname(lua_State * s)
 	return 1;
 }
 
-
 static int v8_lua_table_nrows(lua_State * s)
 {
 	V8Table * self = v8_lua_table_self(s);
@@ -513,17 +547,4 @@ static int v8_lua_table_ncols(lua_State * s)
 	return 1;
 }
 
-static void v8_lua_strchrep(char * str, char a, char b)
-{
-	while (*str != '\0')
-	{
-		if (*str == a)
-		{
-			*str = b;
-		}
-
-		++str;
-	}
-}
-
-#undef V8_LUA_MAX_PATH
+#undef V8_MAX_PATH
