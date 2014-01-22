@@ -501,6 +501,25 @@ static void v8_handle_signal(int fd, void * data)
 			{
 				v8_log_debug("Child has not changed state");
 			}
+			else
+			{
+				if (WIFEXITED(status))
+				{
+					v8_log_debug("Child %i exited with code: %i", pid, WEXITSTATUS(status));
+				}
+				else if (WIFSIGNALED(status))
+				{
+					v8_log_error("Child %i was terminated by signal: %i", pid, WTERMSIG(status));
+				}
+				else if (WIFSTOPPED(status))
+				{
+					v8_log_error("Child %i was stopped by signal: %i", pid, WSTOPSIG(status));
+				}
+				else if (WIFCONTINUED(status))
+				{
+					v8_log_error("Child %i continued it's execution", pid);
+				}
+			}
 
 			break;
 		case SIGHUP:

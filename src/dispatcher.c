@@ -105,6 +105,10 @@ int v8_dispatcher_add_listener(V8Dispatcher * dispatcher, int fd,
 			v8_log_error("Error while adding fd to epoll: %d", errno);
 		}
 	}
+	else
+	{
+		v8_epoll_event_destroy(epev);
+	}
 
 	return ret;
 }

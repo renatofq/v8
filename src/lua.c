@@ -250,7 +250,7 @@ static int v8_lua_script_file(const char * file, char * lua_file)
 
  error_cleanup:
 	strcpy(lua_file, "");
-	free(strbuf);
+
 	return -1;
 }
 
