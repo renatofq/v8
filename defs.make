@@ -1,7 +1,11 @@
 # Tools
-SHELL = /bin/bash
+ifeq ($(CC),)
 CC = gcc
 LD = gcc
+else
+LD = $(CC)
+endif
+
 MAKE = make
 RM = rm
 MKDIR = mkdir
@@ -12,8 +16,10 @@ SET = set
 INSTALL = install
 
 # Default to debug
-ifeq ($(CFG),)
+ifeq ($(BUILD_CFG),)
 CFG=debug
+else
+CFG= $(BUILD_CFG)
 endif
 
 # Config

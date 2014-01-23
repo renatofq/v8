@@ -22,7 +22,8 @@ ifneq ($(CFG),debug)
 endif
 endif
 	$(ECHO) "------------------------------"
-	$(ECHO) "Configuration "$(CFG)
+	$(ECHO) "Configuration: "$(CFG)
+	$(ECHO) "Compiler: "$(CC)
 	$(ECHO) "------------------------------"
 
 clean:
