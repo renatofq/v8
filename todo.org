@@ -1,6 +1,8 @@
 * Novas Funcionalidades
+** TODO Definir content-type de acordo com a extensão
 ** TODO Rotas com regex, identificador e extensão
 ** TODO Implementar retorno de erro automático
+** TODO Logar quando filho terminar com erro
 
 * Testes
 ** TODO Implementar teste unitário de List
