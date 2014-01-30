@@ -458,6 +458,9 @@ static int v8_lua_gen_file(const char * tmpl_file, const char * lua_file)
 		fprintf(outf, "\n]==])");
 	}
 
+	/* Ensures that the last line of the script is empty */
+	fputc('\n', outf);
+
  cleanup:
 	if (inf != NULL)
 	{

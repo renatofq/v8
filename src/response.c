@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #define V8_FORMATTER_SIZE (4*1024)
+#define V8_MAX_PATH_SIZE (2048)
 
 struct v8_response_t
 {
@@ -221,15 +222,40 @@ void v8_response_ok(V8Response * response, const char * file)
 	v8_response_render(response, file);
 }
 
-void v8_response_redirect(V8Response * response, const char * path)
+void v8_response_redirect(V8Response * response, const char * path,
+                          V8Map * params)
 {
+	const V8MapIterator * it;
+	char full_path[V8_MAX_PATH_SIZE + 1];
+	int curr_size = 0;
+
 	if (response == NULL)
 	{
 		return;
 	}
 
+
 	v8_response_set_status(response, V8_STATUS_SEE_OTHER);
-	v8_response_add_header(response, "Location", path);
+
+	if (params == NULL)
+	{
+		v8_response_add_header(response, "Location", path);
+	}
+	else
+	{
+		snprintf(full_path, sizeof(full_path), "%s?", path);
+		for (it = v8_map_iterator(params); it != NULL;
+		     it = v8_map_iterator_next(it))
+		{
+			curr_size = strlen(full_path);
+			snprintf(full_path + curr_size, sizeof(full_path)  - curr_size,
+			         "%s=%s&",
+			         v8_strmap_iterator_key(it),
+			         v8_strmap_iterator_value(it));
+		}
+		v8_response_add_header(response, "Location", full_path);
+		v8_map_destroy(params);
+	}
 }
 
 

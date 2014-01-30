@@ -253,6 +253,7 @@ static void v8_scgi_fill_route(V8Request * request)
 {
 	const char * route = v8_strmap_value(request->header, "request_uri");
 	char * str = NULL;
+	int len = 0;
 
 	if(strlen(route) == 0)
 	{
@@ -262,15 +263,22 @@ static void v8_scgi_fill_route(V8Request * request)
 
 	request->route = strdup(route);
 	if (request->route == NULL)
-  {
-	  v8_log_error("Error while trying to set route");
-	  return;
-  }
+	{
+		v8_log_error("Error while trying to set route");
+		return;
+	}
 
 	str = strchr(request->route, '?');
 	if (str != NULL)
 	{
 		*str = '\0';
+	}
+
+	/* If the last char is '/' and it isn't the only one then ignore it */
+	len = strlen(request->route);
+	if (len > 1 && request->route[len -1] == '/')
+	{
+		request->route[len - 1] = '\0';
 	}
 }
 

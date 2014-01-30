@@ -2,7 +2,9 @@
 ** TODO Definir content-type de acordo com a extensão
 ** TODO Rotas com regex, identificador e extensão
 ** TODO Implementar retorno de erro automático
-** TODO Logar quando filho terminar com erro
+** DONE Ignorar se o último caracter for '/'
+** DONE Garantir que a última linha do script seja vazia
+** TODO Habilitar parâmetros no redirect
 
 * Testes
 ** TODO Implementar teste unitário de List
