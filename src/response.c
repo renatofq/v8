@@ -27,6 +27,7 @@
 
 #define V8_FORMATTER_SIZE (4*1024)
 #define V8_MAX_PATH_SIZE (2048)
+#define V8_MAX_CONTENT_TYPE (32)
 
 struct v8_response_t
 {
@@ -272,13 +273,26 @@ void v8_response_error(V8Response * response, const char * file)
 
 static void v8_response_render(V8Response * response, const char * file)
 {
+	char content_type[V8_MAX_CONTENT_TYPE + 1];
+	char * format = NULL;
+
 	if (response->view == NULL)
 	{
 		response->view = v8_view_create(response->body, response->request->params);
 	}
 
+	format = strrchr(file, '.');
+	if (format == NULL)
+	{
+		strncpy(content_type, "text/plain; charset=utf-8", V8_MAX_CONTENT_TYPE);
+		content_type[V8_MAX_CONTENT_TYPE] = '\0';
+	}
+	else
+	{
+		snprintf(content_type, sizeof(content_type), "text/%s; charset=utf-8", format);
+	}
 
-	v8_response_add_header(response, "Content-Type", "text/html");
+	v8_response_add_header(response, "Content-Type", content_type);
 	v8_view_render(response->view, file);
 }
 

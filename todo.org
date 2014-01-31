@@ -1,10 +1,8 @@
 * Novas Funcionalidades
-** TODO Definir content-type de acordo com a extensão
+** DONE Definir content-type de acordo com a extensão
 ** TODO Rotas com regex, identificador e extensão
 ** TODO Implementar retorno de erro automático
-** DONE Ignorar se o último caracter for '/'
-** DONE Garantir que a última linha do script seja vazia
-** TODO Habilitar parâmetros no redirect
+
 
 * Testes
 ** TODO Implementar teste unitário de List
@@ -21,6 +19,6 @@
 * Possíveis Incrementos
 ** TODO Implementar lista no script
 ** TODO Mudar Map para árvore
-** TODO Adicionar mais logs nas situacoes de erro
 ** TODO Possiblilitar handlers em lua
 ** TODO Possibilitar disponibilisar várias variáveis para lua via varargs
+** TODO Criar compatibilidade com cgi
