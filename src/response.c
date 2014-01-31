@@ -296,7 +296,7 @@ static void v8_response_render(V8Response * response, const char * file)
 	else
 	{
 		snprintf(content_type, sizeof(content_type),
-		         "text/%s; charset=utf-8", format);
+		         "text/%s; charset=utf-8", format + 1);
 	}
 
 	v8_response_add_header(response, "Content-Type", content_type);
