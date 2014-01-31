@@ -274,14 +274,20 @@ void v8_response_error(V8Response * response, const char * file)
 static void v8_response_render(V8Response * response, const char * file)
 {
 	char content_type[V8_MAX_CONTENT_TYPE + 1];
-	char * format = NULL;
+	const char * format = NULL;
 
 	if (response->view == NULL)
 	{
 		response->view = v8_view_create(response->body, response->request->params);
 	}
 
-	format = strrchr(file, '.');
+	format = strrchr(file, '/');
+	if (format == NULL)
+	{
+		format = file;
+	}
+
+	format = strrchr(format, '.');
 	if (format == NULL)
 	{
 		strncpy(content_type, "text/plain; charset=utf-8", V8_MAX_CONTENT_TYPE);
@@ -289,7 +295,8 @@ static void v8_response_render(V8Response * response, const char * file)
 	}
 	else
 	{
-		snprintf(content_type, sizeof(content_type), "text/%s; charset=utf-8", format);
+		snprintf(content_type, sizeof(content_type),
+		         "text/%s; charset=utf-8", format);
 	}
 
 	v8_response_add_header(response, "Content-Type", content_type);
@@ -298,9 +305,9 @@ static void v8_response_render(V8Response * response, const char * file)
 
 static const char * v8_response_status_phrase(int status)
 {
-	int hundred = status / 100;
+	int hundreds = status / 100;
 
-	switch (hundred)
+	switch (hundreds)
 	{
 	case 1:
 		return "Informational - Request received, continuing process";
