@@ -34,22 +34,22 @@ V8Cookie * v8_cookie_create(const char * name, const char * value)
 	V8Cookie * cookie = NULL;
 
 	if (name == NULL || strlen(name) == 0)
-  {
+	{
 	  return NULL;
-  }
+	}
 
 	cookie = malloc(sizeof(V8Cookie));
 	if (cookie == NULL)
-  {
+	{
 	  return NULL;
-  }
+	}
 
 	cookie->name = strdup(name);
 	cookie->map = v8_strmap_create();
 	if (cookie->name == NULL || cookie->map == NULL)
-  {
+	{
 	  goto error_cleanup;
-  }
+	}
 
 	cookie->expires = 0;
 	cookie->secure = 0;
@@ -77,10 +77,10 @@ void v8_cookie_destroy(V8Cookie * cookie)
 	cookie->httponly = 0;
 
 	if (cookie->name != NULL)
-  {
+	{
 	  free(cookie->name);
 	  cookie->name = NULL;
-  }
+	}
 
 	if (cookie->map != NULL)
 	{
